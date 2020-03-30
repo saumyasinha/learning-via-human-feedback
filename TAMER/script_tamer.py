@@ -1,4 +1,4 @@
-from TAMER_agent import TamerAgent, experience
+from TAMER.TAMER_Agent import TamerAgent, experience
 import gym
 import time
 import numpy as np
@@ -14,12 +14,12 @@ if __name__ == '__main__':
 
     env.reset()
 
-    ## Initialize TamerAgent
+    ## Initialize Tamer Agent
     agent = TamerAgent(env)
 
     ## hyperparameters
-    num_episodes = 3000
-    buffer_update_interval=100
+    num_episodes = 20
+    buffer_update_interval=50
 
     reward_list = []
     avg_reward_list = []
@@ -29,8 +29,9 @@ if __name__ == '__main__':
         done = False
         tot_reward, reward = 0, 0
         state = env.reset()
+        t = time.time()
 
-        ## D (list of all (x,y) pairs)
+        ## D (list of all experiences in form of (x,y) pairs)
         agent.total_experiences = []
 
         ## List of all x; x = (s,a,t,t+1)_
@@ -44,8 +45,12 @@ if __name__ == '__main__':
             # if i >= (num_episodes - 5):
             #     env.render()
 
-            ## Choosing action via a greedy policy; action = argmaxH(s,a)
+            ## Choosing action via a greedy policy; action = argmax H(s,a)
             action = agent.getAction(state)
+
+            ## Add the x in the x_list
+            exp = experience(state, action, t, t + 1, 0, 0)
+            agent.x_list.append(exp)
 
             # Step forward and receive next state and reward
             state2, reward, done, info = env.step(action)
@@ -53,11 +58,7 @@ if __name__ == '__main__':
 
             current_time = time.time()
 
-            ## Add this x in the x_list
-            exp = experience(state, action, current_time, current_time + 1,0,0)
-            agent.x_list.append(exp)
-
-            ## Proxy for receiving human signal/feedback
+            ## Proxy for receiving human signal/feedback (has to be replaced)
             signal = np.random.choice([0,1,2,3],1, p=[0.8,0.05,0.05,0.1])
 
             # signal = getHumanSignal()
@@ -82,6 +83,7 @@ if __name__ == '__main__':
 
 
             state = state2
+            t = current_time
 
             i=i+1
 

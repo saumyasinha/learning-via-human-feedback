@@ -1,5 +1,5 @@
 
-from human_reward_model import HumanRewardModel
+from TAMER.Human_reward_model import HumanRewardModel
 from torch.autograd import Variable
 import torch
 import torch.optim as optim
@@ -50,15 +50,16 @@ class TamerAgent():
         Recieves human signal and updates the weights of all x (i.e assigns credit to them)
         according to some rule.
         Current function uses this rule from the paper: "each observed feedback y will only have nonzero w for those x observed between 4 and 0.2 seconds before the feedback occurred."
-        The non-zero (x,y) pairs or experiences are added to 'experiences' list
+        The non-zero (x,y) pairs or experiences are added to 'experiences' list and the 'total_experiences' list is also updated
         '''
 
         self.experiences = []
 
-        ## assigning equal weight to every experience within 0.2 to 4 secs before the feedback (not ideal!!)
+        ## assigning equal weight to every x within 0.2 to 4 secs before the feedback (not ideal!!)
         weight_per_experience = 1.0 / (self.upper_window_size - self.lower_window_size)
 
         for exp in self.x_list:
+            # print(exp.te, exp.ts, feedback_time)
             if (exp.te < feedback_time - self.upper_window_size) or (exp.ts > feedback_time - self.lower_window_size):
                 continue
             else:
@@ -85,7 +86,7 @@ class TamerAgent():
 
     def addExperience(self, experience):
         """
-           Adding non-zero weighted experiences for every  human feedback received
+           Adding non-zero weighted experiences (for every human feedback received)
         """
         self.experiences.append(experience)
 
@@ -119,7 +120,7 @@ class TamerAgent():
             batch_size = min(len(self.total_experiences), mini_batch_size)
             mini_batch = random.sample(self.total_experiences,batch_size)
 
-
+        # print(batch_size)
         loss = torch.FloatTensor([0.])
 
         ## Using the loss fucntion from Deep TAMER paper:
