@@ -32,7 +32,7 @@ def QLearning(env, learning, discount, epsilon, min_eps, episodes):
         state_adj = (state - env.observation_space.low) * np.array([10, 100])
         state_adj = np.round(state_adj, 0).astype(int)
 
-        while done != True:
+        while not done:
 
             # Render environment for last five episodes
             # if i >= (episodes - 5):
@@ -92,7 +92,7 @@ if __name__ == '__main__':
     env = gym.make('MountainCar-v0')
     env.reset()
 
-    #hyperparameters
+    # hyperparameters
     learning = 0.2
     discount = 0.9
     epsilon = 0.8
