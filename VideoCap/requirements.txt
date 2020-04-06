@@ -1,0 +1,3 @@
+opencv-python==4.2.0.34
+dlib==19.19.0
+face-recognition==1.3.0
