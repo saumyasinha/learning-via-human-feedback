@@ -2,24 +2,28 @@ import numpy as np
 import gym
 import matplotlib
 import matplotlib.pyplot as plt
-matplotlib.use('Agg')  # stops python crashing
+
+matplotlib.use("Agg")  # stops python crashing
 
 
 class QLearningAgent:
-
-    def __init__(self, env, learning_rate, discount_factor, epsilon, min_eps, num_episodes):
+    def __init__(
+        self, env, learning_rate, discount_factor, epsilon, min_eps, num_episodes
+    ):
 
         env.reset()
         self.env = env
 
         # Discretizing state space (discretization strategy taken from an online blog)
-        num_states = (env.observation_space.high - env.observation_space.low) * \
-                     np.array([10, 100])
+        num_states = (
+            env.observation_space.high - env.observation_space.low
+        ) * np.array([10, 100])
         num_states = np.round(num_states, 0).astype(int) + 1
 
         # Initialize Q table
         self.Q = np.random.uniform(
-            low=-1, high=1, size=(num_states[0], num_states[1], env.action_space.n))
+            low=-1, high=1, size=(num_states[0], num_states[1], env.action_space.n)
+        )
 
         # Hyperparameters
         self.learning_rate = learning_rate
@@ -74,8 +78,11 @@ class QLearningAgent:
                 # Update Q value for current state
                 else:
                     delta = self.learning_rate * (
-                        reward + self.discount_factor * np.max(self.Q[next_state_adj[0], next_state_adj[1]]) -
-                        self.Q[state_adj[0], state_adj[1], action])
+                        reward
+                        + self.discount_factor
+                        * np.max(self.Q[next_state_adj[0], next_state_adj[1]])
+                        - self.Q[state_adj[0], state_adj[1], action]
+                    )
                     self.Q[state_adj[0], state_adj[1], action] += delta
 
                 # Update variables
@@ -93,7 +100,7 @@ class QLearningAgent:
                 avg_reward = np.mean(self.reward_list)
                 self.avg_reward_list.append(avg_reward)
                 self.reward_list = []
-                print('Episode {} Average Reward: {}'.format(i + 1, avg_reward))
+                print("Episode {} Average Reward: {}".format(i + 1, avg_reward))
 
         self.env.close()
 
@@ -112,9 +119,9 @@ class QLearningAgent:
         return np.round(state_adj, 0).astype(int)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
 
-    env = gym.make('MountainCar-v0')
+    env = gym.make("MountainCar-v0")
 
     # hyperparameters
     learning_rate = 0.2
@@ -123,15 +130,17 @@ if __name__ == '__main__':
     min_eps = 0
     num_episodes = 1000
 
-    agent = QLearningAgent(env, learning_rate, discount_factor, epsilon, min_eps, num_episodes)
+    agent = QLearningAgent(
+        env, learning_rate, discount_factor, epsilon, min_eps, num_episodes
+    )
     agent.train()
     agent.play()
 
     # Plot Rewards
     rewards = agent.avg_reward_list
     plt.plot(100 * (np.arange(len(rewards)) + 1), rewards)
-    plt.xlabel('Episodes')
-    plt.ylabel('Average Reward')
-    plt.title('Average Reward vs Episodes')
-    plt.savefig('rewards_QLearning.jpg')
+    plt.xlabel("Episodes")
+    plt.ylabel("Average Reward")
+    plt.title("Average Reward vs Episodes")
+    plt.savefig("rewards_QLearning.jpg")
     plt.close()

@@ -7,10 +7,9 @@ import numpy as np
 # def getHumanSignal():
 
 
-
 ## Attempt to implement Algorithm1 of the Deep TAMER paper
-if __name__ == '__main__':
-    env = gym.make('MountainCar-v0')
+if __name__ == "__main__":
+    env = gym.make("MountainCar-v0")
 
     env.reset()
 
@@ -19,7 +18,7 @@ if __name__ == '__main__':
 
     ## hyperparameters
     num_episodes = 20
-    buffer_update_interval=50
+    buffer_update_interval = 50
 
     reward_list = []
     avg_reward_list = []
@@ -40,7 +39,7 @@ if __name__ == '__main__':
         i = 0
         j = 0
         k = 0
-        while done!=True:
+        while done != True:
             # Render environment for last five episodes
             # if i >= (num_episodes - 5):
             #     env.render()
@@ -59,33 +58,31 @@ if __name__ == '__main__':
             current_time = time.time()
 
             ## Proxy for receiving human signal/feedback (has to be replaced)
-            signal = np.random.choice([0,1,2,3],1, p=[0.8,0.05,0.05,0.1])
+            signal = np.random.choice([0, 1, 2, 3], 1, p=[0.8, 0.05, 0.05, 0.1])
 
             # signal = getHumanSignal()
 
             ## If human gives a feedback
-            if signal!=0:
+            if signal != 0:
 
                 feedback_time = time.time()
                 ## Update weights (assigning credit) of all x and build the set Dj for the current feedback
                 agent.updateWeightsforSignal(signal, feedback_time)
-                j=j+1
+                j = j + 1
 
                 ## mini-batch SGD update of the reward model(H)
                 agent.SGD_update("human")
-                k = k+1
-
+                k = k + 1
 
             ##Feedback replay buffer used in the paper: update the model at regular intervals
-            if (i%buffer_update_interval)==0 and len(agent.total_experiences)>0:
+            if (i % buffer_update_interval) == 0 and len(agent.total_experiences) > 0:
                 agent.SGD_update("fixed")
-                k=k+1
-
+                k = k + 1
 
             state = state2
             t = current_time
 
-            i=i+1
+            i = i + 1
 
         reward_list.append(tot_reward)
 
@@ -95,17 +92,4 @@ if __name__ == '__main__':
             reward_list = []
 
         if (i + 1) % 100 == 0:
-            print('Episode {} Average Reward: {}'.format(i + 1, avg_reward))
-
-
-
-
-
-
-
-
-
-
-
-
-
+            print("Episode {} Average Reward: {}".format(i + 1, avg_reward))

@@ -1,4 +1,3 @@
-
 from TAMER.Human_reward_model import HumanRewardModel
 from torch.autograd import Variable
 import torch
@@ -7,10 +6,10 @@ import math
 import random
 
 
-class experience():
-    '''
+class experience:
+    """
     Experience is an (x,y) pair, where x = (s,a,t,t+1) and y = (label,feedback-time)
-    '''
+    """
 
     def __init__(self, state, action, ts, te, tf, label):
         self.state = state
@@ -22,11 +21,8 @@ class experience():
         self.label = label
 
 
-
-class TamerAgent():
-
-    def __init__(self,env,gamma=0
-                 , lower_window_size=0.2, upper_window_size=4):
+class TamerAgent:
+    def __init__(self, env, gamma=0, lower_window_size=0.2, upper_window_size=4):
 
         self.gamma = gamma
 
@@ -44,14 +40,13 @@ class TamerAgent():
         ## Initializing the human reward model H
         self.model = HumanRewardModel(env)
 
-
     def updateWeightsforSignal(self, signal, feedback_time):
-        '''
+        """
         Recieves human signal and updates the weights of all x (i.e assigns credit to them)
         according to some rule.
         Current function uses this rule from the paper: "each observed feedback y will only have nonzero w for those x observed between 4 and 0.2 seconds before the feedback occurred."
         The non-zero (x,y) pairs or experiences are added to 'experiences' list and the 'total_experiences' list is also updated
-        '''
+        """
 
         self.experiences = []
 
@@ -60,7 +55,9 @@ class TamerAgent():
 
         for exp in self.x_list:
             # print(exp.te, exp.ts, feedback_time)
-            if (exp.te < feedback_time - self.upper_window_size) or (exp.ts > feedback_time - self.lower_window_size):
+            if (exp.te < feedback_time - self.upper_window_size) or (
+                exp.ts > feedback_time - self.lower_window_size
+            ):
                 continue
             else:
                 exp.tf = feedback_time
@@ -68,10 +65,7 @@ class TamerAgent():
                 exp.weight = weight_per_experience
                 self.addExperience(exp)
 
-
         self.total_experiences.extend(self.experiences)
-
-
 
     def getAction(self, state):
         """
@@ -82,19 +76,13 @@ class TamerAgent():
 
         return max_action.item()
 
-
-
     def addExperience(self, experience):
         """
            Adding non-zero weighted experiences (for every human feedback received)
         """
         self.experiences.append(experience)
 
-
-
-
-
-    def SGD_update(self, type, learning_rate=0.01,mini_batch_size = 32):
+    def SGD_update(self, type, learning_rate=0.01, mini_batch_size=32):
 
         # train_on_gpu = torch.cuda.is_available()
 
@@ -118,10 +106,10 @@ class TamerAgent():
 
         else:
             batch_size = min(len(self.total_experiences), mini_batch_size)
-            mini_batch = random.sample(self.total_experiences,batch_size)
+            mini_batch = random.sample(self.total_experiences, batch_size)
 
         # print(batch_size)
-        loss = torch.FloatTensor([0.])
+        loss = torch.FloatTensor([0.0])
 
         ## Using the loss fucntion from Deep TAMER paper:
         ## A weighted difference between the human reward and the predicted value for each
@@ -141,5 +129,3 @@ class TamerAgent():
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
-
-
