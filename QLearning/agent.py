@@ -1,11 +1,16 @@
 import numpy as np
 import gym
+import matplotlib
 import matplotlib.pyplot as plt
+matplotlib.use('Agg')  # stops python crashing
 
 
 class QLearningAgent:
 
     def __init__(self, env, learning_rate, discount_factor, epsilon, min_eps, num_episodes):
+
+        env.reset()
+        self.env = env
 
         # Discretizing state space (discretization strategy taken from an online blog)
         num_states = (env.observation_space.high - env.observation_space.low) * \
@@ -29,6 +34,13 @@ class QLearningAgent:
         self.reward_list = []
         self.avg_reward_list = []
 
+    def act(self, state_adj):
+        """ Epsilon-greedy Policy """
+        if np.random.random() < 1 - self.epsilon:
+            return np.argmax(self.Q[state_adj[0], state_adj[1]])
+        else:
+            return np.random.randint(0, self.env.action_space.n)
+
     def train(self):
 
         # Run Q learning algorithm
@@ -36,29 +48,24 @@ class QLearningAgent:
 
             done = False
             tot_reward, reward = 0, 0
-            state = env.reset()
+            state = self.env.reset()
 
             # Discretize state
-            state_adj = (state - env.observation_space.low) * np.array([10, 100])
-            state_adj = np.round(state_adj, 0).astype(int)
+            state_adj = self.discretize_state(state)
 
             while not done:
                 # Render environment for last five episodes
                 # if i >= (episodes - 5):
-                #     env.render()
+                #     self.env.render()
 
-                # Determine next action - epsilon greedy strategy
-                if np.random.random() < 1 - self.epsilon:
-                    action = np.argmax(self.Q[state_adj[0], state_adj[1]])
-                else:
-                    action = np.random.randint(0, env.action_space.n)
+                # Determine next action
+                action = self.act(state_adj)
 
                 # Get next state and reward
-                next_state, reward, done, info = env.step(action)
+                next_state, reward, done, info = self.env.step(action)
 
                 # Discretize next state
-                next_state_adj = (next_state - env.observation_space.low) * np.array([10, 100])
-                next_state_adj = np.round(next_state_adj, 0).astype(int)
+                next_state_adj = self.discretize_state(next_state)
 
                 # For terminal states
                 if done and next_state[0] >= 0.5:
@@ -88,23 +95,37 @@ class QLearningAgent:
                 self.reward_list = []
                 print('Episode {} Average Reward: {}'.format(i + 1, avg_reward))
 
-        env.close()
+        self.env.close()
+
+    def play(self):
+        state_adj = self.discretize_state(self.env.reset())
+        done = False
+        while not done:
+            action = self.act(state_adj)
+            next_state, reward, done, info = self.env.step(action)
+            self.env.render()
+            state_adj = self.discretize_state(next_state)
+        self.env.close()
+
+    def discretize_state(self, state):
+        state_adj = (state - self.env.observation_space.low) * np.array([10, 100])
+        return np.round(state_adj, 0).astype(int)
 
 
 if __name__ == '__main__':
 
     env = gym.make('MountainCar-v0')
-    env.reset()
 
     # hyperparameters
     learning_rate = 0.2
     discount_factor = 0.9
     epsilon = 0.8
     min_eps = 0
-    num_episodes = 5000
+    num_episodes = 1000
 
     agent = QLearningAgent(env, learning_rate, discount_factor, epsilon, min_eps, num_episodes)
     agent.train()
+    agent.play()
 
     # Plot Rewards
     rewards = agent.avg_reward_list
