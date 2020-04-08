@@ -1,4 +1,4 @@
-from TAMER.Human_reward_model import HumanRewardModel
+from TAMER.human_reward_model import HumanRewardModel
 from torch.autograd import Variable
 import torch
 import torch.optim as optim

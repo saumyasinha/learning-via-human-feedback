@@ -1,4 +1,4 @@
-from TAMER.TAMER_Agent import TamerAgent, experience
+from TAMER.TAMER_agent import TamerAgent, experience
 import gym
 import time
 import numpy as np
