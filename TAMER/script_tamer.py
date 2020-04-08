@@ -28,7 +28,6 @@ if __name__ == "__main__":
         done = False
         tot_reward, reward = 0, 0
         state = env.reset()
-        t = time.time()
 
         ## D (list of all experiences in form of (x,y) pairs)
         agent.total_experiences = []
@@ -47,15 +46,16 @@ if __name__ == "__main__":
             ## Choosing action via a greedy policy; action = argmax H(s,a)
             action = agent.getAction(state)
 
+            current_time = time.time()
+
             ## Add the x in the x_list
-            exp = experience(state, action, t, t + 1, 0, 0)
+            exp = experience(state, action, current_time, current_time + 1, 0, 0)
             agent.x_list.append(exp)
 
             # Step forward and receive next state and reward
             state2, reward, done, info = env.step(action)
             tot_reward += reward
 
-            current_time = time.time()
 
             ## Proxy for receiving human signal/feedback (has to be replaced)
             signal = np.random.choice([0, 1, 2, 3], 1, p=[0.8, 0.05, 0.05, 0.1])
@@ -80,16 +80,16 @@ if __name__ == "__main__":
                 k = k + 1
 
             state = state2
-            t = current_time
+
 
             i = i + 1
 
         reward_list.append(tot_reward)
 
-        if (i + 1) % 100 == 0:
+        if (episode + 1) % 100 == 0:
             avg_reward = np.mean(reward_list)
             avg_reward_list.append(avg_reward)
             reward_list = []
 
-        if (i + 1) % 100 == 0:
+        if (episode + 1) % 100 == 0:
             print("Episode {} Average Reward: {}".format(i + 1, avg_reward))
