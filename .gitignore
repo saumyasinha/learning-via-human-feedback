@@ -2,3 +2,5 @@ __pycache__/*
 .idea/*
 *.pyc
 FaceClassifier/data/
+FaceClassifier/.ipynb_checkpoints/
+FaceClassifier/*.ipynb
