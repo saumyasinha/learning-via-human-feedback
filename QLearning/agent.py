@@ -2,6 +2,7 @@ import numpy as np
 import gym
 import matplotlib
 import matplotlib.pyplot as plt
+import pandas as pd
 
 matplotlib.use("Agg")  # stops python crashing
 
@@ -38,6 +39,9 @@ class QLearningAgent:
         self.reward_list = []
         self.avg_reward_list = []
 
+        # Record states and actions
+        self.states = [[] for _ in range(env.observation_space.shape[0])]  # may not work for all gym envs
+
     def act(self, state_adj):
         """ Epsilon-greedy Policy """
         if np.random.random() < 1 - self.epsilon:
@@ -53,11 +57,14 @@ class QLearningAgent:
             done = False
             tot_reward, reward = 0, 0
             state = self.env.reset()
+            for k, s in enumerate(state):
+                self.states[k].append(s)
 
             # Discretize state
             state_adj = self.discretize_state(state)
 
             while not done:
+
                 # Render environment for last five episodes
                 # if i >= (episodes - 5):
                 #     self.env.render()
@@ -67,6 +74,10 @@ class QLearningAgent:
 
                 # Get next state and reward
                 next_state, reward, done, info = self.env.step(action)
+
+                # save state
+                for k, s in enumerate(next_state):
+                    self.states[k].append(s)
 
                 # Discretize next state
                 next_state_adj = self.discretize_state(next_state)
@@ -105,7 +116,8 @@ class QLearningAgent:
         self.env.close()
 
     def play(self):
-        state_adj = self.discretize_state(self.env.reset())
+        state = self.env.reset()
+        state_adj = self.discretize_state(state)
         done = False
         while not done:
             action = self.act(state_adj)
@@ -118,6 +130,10 @@ class QLearningAgent:
         state_adj = (state - self.env.observation_space.low) * np.array([10, 100])
         return np.round(state_adj, 0).astype(int)
 
+    def get_visited_states(self):
+        states = {i: s for i, s in enumerate(self.states)}
+        return pd.DataFrame(states)
+
 
 if __name__ == "__main__":
 
@@ -126,14 +142,17 @@ if __name__ == "__main__":
     # hyperparameters
     learning_rate = 0.2
     discount_factor = 0.9
-    epsilon = 0.8
+    epsilon = 0.6
     min_eps = 0
-    num_episodes = 1000
+    num_episodes = 1400
 
     agent = QLearningAgent(
         env, learning_rate, discount_factor, epsilon, min_eps, num_episodes
     )
     agent.train()
+    df = agent.get_visited_states()
+    print(df.describe())
+    df.to_csv('sample_state.csv')
     agent.play()
 
     # Plot Rewards
