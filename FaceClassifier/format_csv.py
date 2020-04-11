@@ -21,7 +21,7 @@ def format_save_csv(label_dir,save_dir):
   discardCount = 0
   discardFile = 'discard.txt'
   labels = [file for file in os.listdir(label_dir) if file.endswith('.csv')]
-  
+  print('Found {} csv files in {}'.format(len(labels),label_dir))
   file = open(discardFile,'w')
   for index in range(len(labels)):
     # print('Reading in {}'.format(labels[i]))
