@@ -8,10 +8,9 @@ import torch.optim as optim
 from torch.autograd import Variable
 
 
-
 def weights_init(m):
     classname = m.__class__.__name__
-    if classname.find('Linear') != -1:
+    if classname.find("Linear") != -1:
         nn.init.normal_(m.weight, 0, 1)
 
 
@@ -25,22 +24,19 @@ class Policy(nn.Module):
         self.l2 = nn.Linear(self.hidden, self.action_space, bias=False)
 
     def forward(self, x):
-        model = torch.nn.Sequential(
-            self.l1,
-            self.l2,
-        )
+        model = torch.nn.Sequential(self.l1, self.l2,)
         return model(x)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
 
-    env = gym.make('MountainCar-v0')
+    env = gym.make("MountainCar-v0")
     env.seed(1)
     state = env.reset()
     torch.manual_seed(1)
     np.random.seed(1)
 
-    #hyperparameters
+    # hyperparameters
     steps = 2000
     epsilon = 0.3
     gamma = 0.99
@@ -108,17 +104,13 @@ if __name__ == '__main__':
                 if state_1[0] >= 0.5:
 
                     # Adjust epsilon
-                    epsilon *= .99
+                    epsilon *= 0.99
 
                     # Adjust learning rate
                     scheduler.step()
 
                     # Record successful episode
                     successes += 1
-
-
-
-
 
                 reward_list.append(episode_reward)
 
@@ -134,16 +126,20 @@ if __name__ == '__main__':
             reward_list = []
 
         if (episode + 1) % 100 == 0:
-            print('Episode {} Average Reward: {}'.format(episode + 1, ave_reward))
+            print("Episode {} Average Reward: {}".format(episode + 1, ave_reward))
 
     env.close()
 
-    print('successful episodes: {:d} - {:.4f}%'.format(successes, successes / episodes * 100))
+    print(
+        "successful episodes: {:d} - {:.4f}%".format(
+            successes, successes / episodes * 100
+        )
+    )
 
     # Plot Rewards
     plt.plot(100 * (np.arange(len(ave_reward_list)) + 1), ave_reward_list)
-    plt.xlabel('Episodes')
-    plt.ylabel('Average Reward')
-    plt.title('Average Reward vs Episodes')
-    plt.savefig('rewards_deepQLearning.jpg')
+    plt.xlabel("Episodes")
+    plt.ylabel("Average Reward")
+    plt.title("Average Reward vs Episodes")
+    plt.savefig("rewards_deepQLearning.jpg")
     plt.close()
