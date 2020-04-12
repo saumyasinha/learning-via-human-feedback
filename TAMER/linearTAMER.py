@@ -208,9 +208,9 @@ if __name__ == "__main__":
     discount_factor = 1
     epsilon = 0  # actually works well with no random exploration
     min_eps = 0
-    num_episodes = 100
+    num_episodes = 3
     ignore_terminal_states = False
-    tame = False
+    tame = True
 
     agent = TAMERAgent(
         env, discount_factor, epsilon, min_eps, num_episodes, ignore_terminal_states, tame
