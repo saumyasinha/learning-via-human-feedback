@@ -5,6 +5,7 @@ https://github.com/dennybritz/reinforcement-learning/blob/master/FA/Q-Learning%2
 
 from itertools import count
 from sys import stdout
+from time import sleep
 import numpy as np
 import gym
 import matplotlib
@@ -16,7 +17,7 @@ from sklearn import pipeline, preprocessing
 matplotlib.use("Agg")  # stops python crashing
 
 
-class LinearQ:
+class LinearH:
     def __init__(self, env):
 
         # Feature Preprocessing: Normalize to zero mean and unit variance
@@ -61,10 +62,10 @@ class LinearQ:
         return featurized[0]
 
 
-class QLearningAgent:
+class TAMERAgent:
     def __init__(self, env, discount_factor, epsilon, min_eps, num_episodes, ignore_terminal_states=False):
 
-        self.Q = LinearQ(env)  # init Q function
+        self.Q = LinearH(env)  # init Q function
         self.env = env
 
         # Hyperparameters
@@ -95,12 +96,15 @@ class QLearningAgent:
 
         # Run Q learning algorithm
         for i in range(self.num_episodes):
+            print(f'Episode: {i + 1}  Timestep:', end='')
             tot_reward = 0
             state = self.env.reset()
-            print(f'Episode: {i + 1}  Timestep:', end='')
 
             for ts in count():
                 print(f' {ts}', end='')
+                # Render environment
+                self.env.render()
+                # sleep(0.1)
 
                 # Determine next action
                 action = self.act(state)
@@ -115,8 +119,9 @@ class QLearningAgent:
                 # print(td_target)
 
                 self.Q.update(state, action, td_target)
-                tot_reward += reward
 
+                # Update variables
+                tot_reward += reward
                 if done:
                     print(f'  Reward: {tot_reward}')
                     break
@@ -150,10 +155,10 @@ if __name__ == "__main__":
     discount_factor = 1
     epsilon = 0  # actually works well with no random exploration
     min_eps = 0
-    num_episodes = 100
+    num_episodes = 2
     ignore_terminal_states = False
 
-    agent = QLearningAgent(
+    agent = TAMERAgent(
         env, discount_factor, epsilon, min_eps, num_episodes, ignore_terminal_states
     )
     agent.train()
