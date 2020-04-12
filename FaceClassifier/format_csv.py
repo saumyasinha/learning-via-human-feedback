@@ -62,7 +62,18 @@ def format_save_csv(label_dir,save_dir):
     # Don't save dataframes that don't have more than 2 columns (time and seconds columns)
     # I'm sure there's a better way to avoid this earlier in the code but I'm tired of looking at these csv files
     if len(cols)>2:
-      master[cols].to_csv('{}'.format(os.path.join(save_dir,labels[index])),index=False)
+      master = master[cols] 
+      # drop any zero rows
+      master = master[(master.iloc[:,2:].T != 0).any()]
+      aus = master.iloc[:,2:]
+      finaldict = {}
+      for idx,rows in aus.iterrows():
+        finaldict[master['Seconds'][idx]] = pd.DataFrame(rows[rows != 0]).transpose().columns.to_list()
+        #master.to_csv('{}'.format(os.path.join(save_dir,labels[index])),index=False)
+        pd.DataFrame(list(zip(list(finaldict.keys()),list(finaldict.values()))),columns=['Time','Labels']).to_csv('{}'.format(os.path.join(save_dir,labels[index])),index=False)
+    else:
+      file.write('{}\n'.format(labels[index]))
+      discardCount+=1
   file.close()
   print('Discarded a total of {} files, filenames are available in {}'.format(discardCount,discardFile))
 
