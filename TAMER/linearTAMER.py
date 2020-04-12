@@ -3,20 +3,58 @@ Some code adapted from:
 https://github.com/dennybritz/reinforcement-learning/blob/master/FA/Q-Learning%20with%20Value%20Function%20Approximation%20Solution.ipynb
 """
 
+import os
 from itertools import count
 from sys import stdout
+import time
 import numpy as np
 import gym
 import matplotlib
 import matplotlib.pyplot as plt
+import pygame
 from sklearn.linear_model import SGDRegressor
 from sklearn.kernel_approximation import RBFSampler
 from sklearn import pipeline, preprocessing
 
 matplotlib.use("Agg")  # stops python crashing
+pygame.init()
+FONT = pygame.font.Font('freesansbold.ttf', 32)
+ACTION_MAP = {0: 'left', 1: 'none', 2: 'right'}
+
+# set position of pygame window (so it doesn't overlap with gym)
+os.environ['SDL_VIDEO_WINDOW_POS'] = '1000,100'
 
 
-class LinearQ:
+def get_scalar_feedback_simple(screen):
+    reward = 0
+    for event in pygame.event.get():
+        if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_w:
+                screen.fill((0, 255, 0))
+                reward = 1
+                break
+            elif event.key == pygame.K_a:
+                screen.fill((255, 0, 0))
+                reward = -1
+                break
+    else:
+        screen.fill((0, 0, 0))
+    pygame.display.flip()
+    # print(reward)
+    return reward
+
+
+def show_action(screen, action):
+    screen.fill((0, 0, 0))
+    pygame.display.flip()
+    text = FONT.render(ACTION_MAP[action], True, (0, 255, 0))
+    text_rect = text.get_rect()
+    text_rect.center = (100, 50)
+    screen.blit(text, text_rect)
+    pygame.display.flip()
+
+
+class LinearFunctionApproximator:
     def __init__(self, env):
 
         # Feature Preprocessing: Normalize to zero mean and unit variance
@@ -24,8 +62,6 @@ class LinearQ:
         observation_examples = np.array([env.observation_space.sample() for _ in range(10000)], dtype='float64')
         self.scaler = preprocessing.StandardScaler()
         self.scaler.fit(observation_examples)
-
-        print(observation_examples[:10])
 
         # Used to convert a state to a featurized represenation.
         # We use RBF kernels with different variances to cover different parts of the space
@@ -63,10 +99,15 @@ class LinearQ:
         return featurized[0]
 
 
-class QLearningAgent:
-    def __init__(self, env, discount_factor, epsilon, min_eps, num_episodes, ignore_terminal_states=False):
+class TAMERAgent:
+    def __init__(self, env, discount_factor, epsilon, min_eps, num_episodes, ignore_terminal_states=False, tame=True):
 
-        self.Q = LinearQ(env)  # init Q function
+        if tame:
+            self.H = LinearFunctionApproximator(env)  # init H function
+        else:  # optionally run as standard Q Learning
+            self.Q = LinearFunctionApproximator(env)  # init Q function
+
+        self.tame = tame
         self.env = env
 
         # Hyperparameters
@@ -89,42 +130,56 @@ class QLearningAgent:
     def act(self, state):
         """ Epsilon-greedy Policy? """
         if np.random.random() < 1 - epsilon:
-            return np.argmax(self.Q.predict(state))
+            preds = self.H.predict(state) if self.tame else self.Q.predict(state)
+            return np.argmax(preds)
         else:
             return np.random.randint(0, env.action_space.n)
 
     def train(self):
 
+        # scalar feedback init
+        screen = pygame.display.set_mode((200, 100))
+        screen.fill((0, 0, 0))
+        pygame.display.flip()
+
         # Run Q learning algorithm
         for i in range(self.num_episodes):
+            print(f'Episode: {i + 1}  Timestep:', end='')
             tot_reward = 0
             state = self.env.reset()
-            print(f'Episode: {i + 1}  Timestep:', end='')
 
             for ts in count():
                 print(f' {ts}', end='')
+                # Render environment
+                self.env.render()
 
                 # Determine next action
                 action = self.act(state)
+                show_action(screen, action)
 
                 # Get next state and reward
                 next_state, reward, done, info = self.env.step(action)
 
-                if done and next_state[0] >= 0.5 and self.ignore_terminal_states:
-                    td_target = reward
+                if self.tame:
+                    time.sleep(0.2)
+                    human_reward = get_scalar_feedback_simple(screen)
+                    if human_reward != 0:
+                        self.H.update(state, action, human_reward)
                 else:
-                    td_target = reward + discount_factor * np.max(self.Q.predict(next_state))
-                # print(td_target)
+                    if done and next_state[0] >= 0.5 and self.ignore_terminal_states:
+                        td_target = reward
+                    else:
+                        td_target = reward + discount_factor * np.max(self.Q.predict(next_state))
+                    self.Q.update(state, action, td_target)
 
-                self.Q.update(state, action, td_target)
                 tot_reward += reward
 
                 if done:
                     print(f'  Reward: {tot_reward}')
                     break
-                else:
-                    stdout.write('\b' * (len(str(ts)) + 1))
-                    state = next_state
+
+                stdout.write('\b' * (len(str(ts)) + 1))
+                state = next_state
 
             # Decay epsilon
             if self.epsilon > min_eps:
@@ -146,18 +201,19 @@ class QLearningAgent:
 
 if __name__ == "__main__":
 
-    # env = gym.make('MountainCar-v0')
-    env = gym.make('CartPole-v1')
+    env = gym.make('MountainCar-v0')
+    # env = gym.make('CartPole-v1')
 
     # hyperparameters
-    discount_factor = 0.9
-    epsilon = 0.7  # actually works well with no random exploration
+    discount_factor = 1
+    epsilon = 0  # actually works well with no random exploration
     min_eps = 0
-    num_episodes = 200
+    num_episodes = 3
     ignore_terminal_states = False
+    tame = True
 
-    agent = QLearningAgent(
-        env, discount_factor, epsilon, min_eps, num_episodes, ignore_terminal_states
+    agent = TAMERAgent(
+        env, discount_factor, epsilon, min_eps, num_episodes, ignore_terminal_states, tame
     )
     agent.train()
     agent.play()
