@@ -14,7 +14,6 @@ from sklearn import pipeline, preprocessing
 matplotlib.use("Agg")  # stops python crashing
 pygame.init()
 
-TAMER_TRAINING_TIMESTEP = 0.2  # seconds per timestep for training
 FONT = pygame.font.Font('freesansbold.ttf', 32)
 ACTION_MAP = {0: 'left', 1: 'none', 2: 'right'}
 
@@ -115,7 +114,7 @@ class TAMERAgent:
     QLearning Agent adapted to TAMER using steps from:
     http://www.cs.utexas.edu/users/bradknox/kcap09/Knox_and_Stone,_K-CAP_2009.html
     """
-    def __init__(self, env, discount_factor, epsilon, min_eps, num_episodes, tame=True):
+    def __init__(self, env, discount_factor, epsilon, min_eps, num_episodes, tame=True, ts_len=0.2):
 
         if tame:
             self.H = LinearFunctionApproximator(env)  # init H function
@@ -123,6 +122,7 @@ class TAMERAgent:
             self.Q = LinearFunctionApproximator(env)  # init Q function
 
         self.tame = tame
+        self.ts_len = ts_len  # length of timestep for training TAMER
         self.env = env
 
         # Hyperparameters
@@ -168,7 +168,7 @@ class TAMERAgent:
                 next_state, reward, done, info = self.env.step(action)
 
                 if self.tame:
-                    time.sleep(TAMER_TRAINING_TIMESTEP)
+                    time.sleep(self.ts_len)
                     human_reward = get_scalar_feedback(screen)
                     if human_reward != 0:
                         self.H.update(state, action, human_reward)
@@ -218,6 +218,11 @@ if __name__ == "__main__":
     num_episodes = 3
     tame = True  # set to false for vanilla Q learning
 
-    agent = TAMERAgent(env, discount_factor, epsilon, min_eps, num_episodes, tame)
+    # set a timestep for training TAMER
+    # the more time per step, the easier for the human but the longer it takes to train (in real time)
+    # 0.2 seconds is fast but doable
+    tamer_training_timestep = 0.2  # seconds
+
+    agent = TAMERAgent(env, discount_factor, epsilon, min_eps, num_episodes, tame, tamer_training_timestep)
     agent.train()
     agent.play()
