@@ -1,4 +1,6 @@
 import pygame
+import os
+os.environ['SDL_VIDEO_WINDOW_POS'] = '1000,200'
 
 white = (255, 255, 255)
 green = (0, 255, 0)
@@ -13,8 +15,6 @@ pygame.mouse.set_visible(0)
 
 while True:
     for event in pygame.event.get():
-
-        # if (event.type == pygame.K_UP) or (event.type == pygame.K_DOWN):
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_0:
                 text = font.render("Positive reward", True, green, blue)

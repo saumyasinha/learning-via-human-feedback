@@ -21,9 +21,11 @@ class LinearQ:
 
         # Feature Preprocessing: Normalize to zero mean and unit variance
         # We use a few samples from the observation space to do this
-        observation_examples = np.array([env.observation_space.sample() for _ in range(10000)])
+        observation_examples = np.array([env.observation_space.sample() for _ in range(10000)], dtype='float64')
         self.scaler = preprocessing.StandardScaler()
         self.scaler.fit(observation_examples)
+
+        print(observation_examples[:10])
 
         # Used to convert a state to a featurized represenation.
         # We use RBF kernels with different variances to cover different parts of the space
@@ -144,13 +146,14 @@ class QLearningAgent:
 
 if __name__ == "__main__":
 
-    env = gym.make("MountainCar-v0")
+    # env = gym.make('MountainCar-v0')
+    env = gym.make('CartPole-v1')
 
     # hyperparameters
-    discount_factor = 1
-    epsilon = 0  # actually works well with no random exploration
+    discount_factor = 0.9
+    epsilon = 0.7  # actually works well with no random exploration
     min_eps = 0
-    num_episodes = 100
+    num_episodes = 200
     ignore_terminal_states = False
 
     agent = QLearningAgent(
