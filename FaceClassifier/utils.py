@@ -123,4 +123,3 @@ class ImageGenerator(Sequence):
 
     def resize_img(self, img, resize_dims):
         return cv2.resize(img, resize_dims)
-
