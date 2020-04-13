@@ -16,7 +16,7 @@ def format_save_csv(original_csv_dir,save_dir):
   Nothing, zilch, nada.
   """
   if not os.path.isdir(save_dir):
-    print('Destination directory {} does not exist, creating one now...'.format(save_dir))
+    print('Destination directory "{}" does not exist, creating one now...'.format(save_dir))
     os.makedirs(save_dir)
   discardCount = 0
   discardFile = 'discard.txt'
@@ -70,12 +70,16 @@ def format_save_csv(original_csv_dir,save_dir):
       for idx,rows in aus.iterrows():
         finaldict[master['Seconds'][idx]] = pd.DataFrame(rows[rows != 0]).transpose().columns.to_list()
         #master.to_csv('{}'.format(os.path.join(save_dir,labels[index])),index=False)
-        pd.DataFrame(list(zip(list(finaldict.keys()),list(finaldict.values()))),columns=['Time','Labels']).to_csv('{}'.format(os.path.join(save_dir,labels[index])),index=False)
+      saving_df = pd.DataFrame(list(zip(list(finaldict.keys()),list(finaldict.values()))),columns=['Time','Labels'])
+      # drop frame at time=0 if it exists because there are multiple files having empty images at t=0
+      if saving_df['Time'][0]==0:
+        saving_df = saving_df.drop([0])
+      saving_df.to_csv('{}'.format(os.path.join(save_dir,labels[index])),index=False)
     else:
       file.write('{}\n'.format(labels[index]))
       discardCount+=1
   file.close()
-  print('Discarded a total of {} files, filenames are available in {}'.format(discardCount,discardFile))
+  print('Discarded a total of {} files, discarded filenames are available in {}'.format(discardCount,discardFile))
 
 if __name__ == '__main__':
   parser = argparse.ArgumentParser()
