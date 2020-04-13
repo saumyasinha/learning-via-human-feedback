@@ -3,13 +3,13 @@ import numpy as np
 import os
 import argparse
 
-def format_save_csv(label_dir,save_dir):
+def format_save_csv(original_csv_dir,save_dir):
   """
   Formats and parses the csv files to get the files that have AU data in them, otherwise discards them. Discarded filenames are
   saved in a file called discard.txt. Also saves the formatted csv files with the same names in the save_dir directory.
 
-  Arguments:
-  - label_dir: str, directory that contains the original csv files/
+  Args:
+  - original_csv_dir: str, directory that contains the original csv files/
   - save_dir: str, directory to which the formatted csv files will be written to. If it doesn't exist, one will be created.
 
   Returns
@@ -20,13 +20,13 @@ def format_save_csv(label_dir,save_dir):
     os.makedirs(save_dir)
   discardCount = 0
   discardFile = 'discard.txt'
-  labels = [file for file in os.listdir(label_dir) if file.endswith('.csv')]
-  print('Found {} csv files in {}'.format(len(labels),label_dir))
+  labels = [file for file in os.listdir(original_csv_dir) if file.endswith('.csv')]
+  print('Found {} csv files in {}'.format(len(labels),original_csv_dir))
   file = open(discardFile,'w')
   for index in range(len(labels)):
     # print('Reading in {}'.format(labels[i]))
     # read csv
-    df = pd.read_csv(os.path.join(label_dir,labels[index]))
+    df = pd.read_csv(os.path.join(original_csv_dir,labels[index]))
     # get the columns that have "AU" in them
     au_cols = ['AU' in col_name for col_name in df.columns]
 
