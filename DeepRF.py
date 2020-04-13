@@ -115,7 +115,7 @@ class DeepNeuralDecisionForest(nn.Module):
 
     def compute_mu(self, flat_decision_p_e):
         n_batch = self._batchsize
-        batch_0_indices = torch.range(0, n_batch * self._nleaf - 1, self._nleaf).unsqueeze(1).repeat(1, self._nleaf).long()
+        batch_0_indices = torch.arange(0, n_batch * self._nleaf, self._nleaf).unsqueeze(1).repeat(1, self._nleaf).long()
 
         in_repeat = self._nleaf // 2
         out_repeat = n_batch
@@ -126,7 +126,8 @@ class DeepNeuralDecisionForest(nn.Module):
         # First define the routing probabilistics d for root nodes
         mu_e = []
         indices_var = Variable((batch_0_indices + batch_complement_indices).view(-1))
-        indices_var = indices_var.cuda()
+        if args.cuda:
+            indices_var = indices_var.cuda()
         # iterate over each tree
         for i, flat_decision_p in enumerate(flat_decision_p_e):
             mu = torch.gather(flat_decision_p, 0, indices_var).view(n_batch, self._nleaf)
@@ -134,7 +135,7 @@ class DeepNeuralDecisionForest(nn.Module):
 
         # from the scond layer to the last layer, we make the decison nodes
         for d in range(1, self._ndepth + 1):
-            indices = torch.range(2 ** d, 2 ** (d + 1) - 1) - 1
+            indices = torch.arange(2 ** d, 2 ** (d + 1)) - 1
             tile_indices = indices.unsqueeze(1).repeat(1, 2 ** (self._ndepth - d + 1)).view(1, -1)
             batch_indices = batch_0_indices + tile_indices.repeat(n_batch, 1).long()
 
@@ -146,7 +147,8 @@ class DeepNeuralDecisionForest(nn.Module):
 
             mu_e_update = []
             indices_var = Variable((batch_indices + batch_complement_indices).view(-1))
-            indices_var = indices_var.cuda()
+            if args.cuda:
+                indices_var = indices_var.cuda()
             for mu, flat_decision_p in zip(mu_e, flat_decision_p_e):
                 mu = torch.mul(mu, torch.gather(flat_decision_p, 0, indices_var).view(
                     n_batch, self._nleaf))
