@@ -326,8 +326,8 @@ def test(epoch, model, model_name):
                 data, target = data.cuda(), target.cuda()
             output = model(data)
             test_loss += F.nll_loss(output, target).item()
-            pred = output.data.max(1)[1]  # get the index of the max log-probability
-            correct += pred.eq(target.data).cpu().sum()
+            pred = output.max(1)[1]  # get the index of the max log-probability
+            correct += pred.eq(target).cpu().sum()
 
     test_loss /= len(test_loader)  # loss function already averages over batch size
     print()
