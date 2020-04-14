@@ -18,5 +18,5 @@ class HumanRewardModel(nn.Module):
         self.l2 = nn.Linear(self.hidden, self.action_space, bias=False)
 
     def forward(self, x):
-        model = torch.nn.Sequential(self.l1, self.l2,)
+        model = torch.nn.Sequential(self.l1, self.l2)
         return model(x)

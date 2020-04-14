@@ -14,11 +14,11 @@ from sklearn import pipeline, preprocessing
 matplotlib.use("Agg")  # stops python crashing
 pygame.init()
 
-FONT = pygame.font.Font('freesansbold.ttf', 32)
-ACTION_MAP = {0: 'left', 1: 'none', 2: 'right'}
+FONT = pygame.font.Font("freesansbold.ttf", 32)
+ACTION_MAP = {0: "left", 1: "none", 2: "right"}
 
 # set position of pygame window (so it doesn't overlap with gym)
-os.environ['SDL_VIDEO_WINDOW_POS'] = '1000,100'
+os.environ["SDL_VIDEO_WINDOW_POS"] = "1000,100"
 
 
 def get_scalar_feedback(screen):
@@ -71,23 +71,27 @@ class LinearFunctionApproximator:
         """
         # Feature preprocessing: Normalize to zero mean and unit variance
         # We use a few samples from the observation space to do this
-        observation_examples = np.array([env.observation_space.sample() for _ in range(10000)], dtype='float64')
+        observation_examples = np.array(
+            [env.observation_space.sample() for _ in range(10000)], dtype="float64"
+        )
         self.scaler = preprocessing.StandardScaler()
         self.scaler.fit(observation_examples)
 
         # Used to convert a state to a featurized represenation.
         # We use RBF kernels with different variances to cover different parts of the space
-        self.featurizer = pipeline.FeatureUnion([
-            ("rbf1", RBFSampler(gamma=5.0, n_components=100)),
-            ("rbf2", RBFSampler(gamma=2.0, n_components=100)),
-            ("rbf3", RBFSampler(gamma=1.0, n_components=100)),
-            ("rbf4", RBFSampler(gamma=0.5, n_components=100))
-        ])
+        self.featurizer = pipeline.FeatureUnion(
+            [
+                ("rbf1", RBFSampler(gamma=5.0, n_components=100)),
+                ("rbf2", RBFSampler(gamma=2.0, n_components=100)),
+                ("rbf3", RBFSampler(gamma=1.0, n_components=100)),
+                ("rbf4", RBFSampler(gamma=0.5, n_components=100)),
+            ]
+        )
         self.featurizer.fit(self.scaler.transform(observation_examples))
 
         self.models = []
         for _ in range(env.action_space.n):
-            model = SGDRegressor(learning_rate='constant')
+            model = SGDRegressor(learning_rate="constant")
             model.partial_fit([self.featurize_state(env.reset())], [0])
             self.models.append(model)
 
@@ -114,7 +118,17 @@ class TAMERAgent:
     QLearning Agent adapted to TAMER using steps from:
     http://www.cs.utexas.edu/users/bradknox/kcap09/Knox_and_Stone,_K-CAP_2009.html
     """
-    def __init__(self, env, discount_factor, epsilon, min_eps, num_episodes, tame=True, ts_len=0.2):
+
+    def __init__(
+        self,
+        env,
+        discount_factor,
+        epsilon,
+        min_eps,
+        num_episodes,
+        tame=True,
+        ts_len=0.2,
+    ):
 
         if tame:
             self.H = LinearFunctionApproximator(env)  # init H function
@@ -152,12 +166,12 @@ class TAMERAgent:
 
         # Run Q learning algorithm
         for i in range(self.num_episodes):
-            print(f'Episode: {i + 1}  Timestep:', end='')
+            print(f"Episode: {i + 1}  Timestep:", end="")
             tot_reward = 0
             state = self.env.reset()
 
             for ts in count():
-                print(f' {ts}', end='')
+                print(f" {ts}", end="")
                 self.env.render()  # render env
 
                 # Determine next action
@@ -176,16 +190,18 @@ class TAMERAgent:
                     if done and next_state[0] >= 0.5:
                         td_target = reward
                     else:
-                        td_target = reward + self.discount_factor * np.max(self.Q.predict(next_state))
+                        td_target = reward + self.discount_factor * np.max(
+                            self.Q.predict(next_state)
+                        )
                     self.Q.update(state, action, td_target)
 
                 tot_reward += reward
 
                 if done:
-                    print(f'  Reward: {tot_reward}')
+                    print(f"  Reward: {tot_reward}")
                     break
 
-                stdout.write('\b' * (len(str(ts)) + 1))
+                stdout.write("\b" * (len(str(ts)) + 1))
                 state = next_state
 
             # Decay epsilon
@@ -209,7 +225,7 @@ class TAMERAgent:
 
 if __name__ == "__main__":
 
-    env = gym.make('MountainCar-v0')
+    env = gym.make("MountainCar-v0")
 
     # hyperparameters
     discount_factor = 1
@@ -223,6 +239,14 @@ if __name__ == "__main__":
     # 0.2 seconds is fast but doable
     tamer_training_timestep = 0.2  # seconds
 
-    agent = TAMERAgent(env, discount_factor, epsilon, min_eps, num_episodes, tame, tamer_training_timestep)
+    agent = TAMERAgent(
+        env,
+        discount_factor,
+        epsilon,
+        min_eps,
+        num_episodes,
+        tame,
+        tamer_training_timestep,
+    )
     agent.train()
     agent.play()

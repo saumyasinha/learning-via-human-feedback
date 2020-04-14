@@ -40,7 +40,9 @@ class QLearningAgent:
         self.avg_reward_list = []
 
         # Record states and actions
-        self.states = [[] for _ in range(env.observation_space.shape[0])]  # may not work for all gym envs
+        self.states = [
+            [] for _ in range(env.observation_space.shape[0])
+        ]  # may not work for all gym envs
 
     def act(self, state_adj):
         """ Epsilon-greedy Policy """
@@ -152,7 +154,7 @@ if __name__ == "__main__":
     agent.train()
     df = agent.get_visited_states()
     print(df.describe())
-    df.to_csv('sample_state.csv')
+    df.to_csv("sample_state.csv")
     agent.play()
 
     # Plot Rewards

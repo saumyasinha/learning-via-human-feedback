@@ -21,7 +21,9 @@ class LinearQ:
 
         # Feature Preprocessing: Normalize to zero mean and unit variance
         # We use a few samples from the observation space to do this
-        observation_examples = np.array([env.observation_space.sample() for _ in range(10000)], dtype='float64')
+        observation_examples = np.array(
+            [env.observation_space.sample() for _ in range(10000)], dtype="float64"
+        )
         self.scaler = preprocessing.StandardScaler()
         self.scaler.fit(observation_examples)
 
@@ -29,17 +31,19 @@ class LinearQ:
 
         # Used to convert a state to a featurized represenation.
         # We use RBF kernels with different variances to cover different parts of the space
-        self.featurizer = pipeline.FeatureUnion([
-            ("rbf1", RBFSampler(gamma=5.0, n_components=100)),
-            ("rbf2", RBFSampler(gamma=2.0, n_components=100)),
-            ("rbf3", RBFSampler(gamma=1.0, n_components=100)),
-            ("rbf4", RBFSampler(gamma=0.5, n_components=100))
-        ])
+        self.featurizer = pipeline.FeatureUnion(
+            [
+                ("rbf1", RBFSampler(gamma=5.0, n_components=100)),
+                ("rbf2", RBFSampler(gamma=2.0, n_components=100)),
+                ("rbf3", RBFSampler(gamma=1.0, n_components=100)),
+                ("rbf4", RBFSampler(gamma=0.5, n_components=100)),
+            ]
+        )
         self.featurizer.fit(self.scaler.transform(observation_examples))
 
         self.models = []
         for _ in range(env.action_space.n):
-            model = SGDRegressor(learning_rate='constant')
+            model = SGDRegressor(learning_rate="constant")
             model.partial_fit([self.featurize_state(env.reset())], [0])
             self.models.append(model)
 
@@ -64,7 +68,15 @@ class LinearQ:
 
 
 class QLearningAgent:
-    def __init__(self, env, discount_factor, epsilon, min_eps, num_episodes, ignore_terminal_states=False):
+    def __init__(
+        self,
+        env,
+        discount_factor,
+        epsilon,
+        min_eps,
+        num_episodes,
+        ignore_terminal_states=False,
+    ):
 
         self.Q = LinearQ(env)  # init Q function
         self.env = env
@@ -99,10 +111,10 @@ class QLearningAgent:
         for i in range(self.num_episodes):
             tot_reward = 0
             state = self.env.reset()
-            print(f'Episode: {i + 1}  Timestep:', end='')
+            print(f"Episode: {i + 1}  Timestep:", end="")
 
             for ts in count():
-                print(f' {ts}', end='')
+                print(f" {ts}", end="")
 
                 # Determine next action
                 action = self.act(state)
@@ -113,17 +125,19 @@ class QLearningAgent:
                 if done and next_state[0] >= 0.5 and self.ignore_terminal_states:
                     td_target = reward
                 else:
-                    td_target = reward + discount_factor * np.max(self.Q.predict(next_state))
+                    td_target = reward + discount_factor * np.max(
+                        self.Q.predict(next_state)
+                    )
                 # print(td_target)
 
                 self.Q.update(state, action, td_target)
                 tot_reward += reward
 
                 if done:
-                    print(f'  Reward: {tot_reward}')
+                    print(f"  Reward: {tot_reward}")
                     break
                 else:
-                    stdout.write('\b' * (len(str(ts)) + 1))
+                    stdout.write("\b" * (len(str(ts)) + 1))
                     state = next_state
 
             # Decay epsilon
@@ -147,7 +161,7 @@ class QLearningAgent:
 if __name__ == "__main__":
 
     # env = gym.make('MountainCar-v0')
-    env = gym.make('CartPole-v1')
+    env = gym.make("CartPole-v1")
 
     # hyperparameters
     discount_factor = 0.9
