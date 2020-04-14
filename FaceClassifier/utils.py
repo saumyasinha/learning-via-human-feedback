@@ -2,8 +2,6 @@ from keras.utils import Sequence
 import numpy as np
 import cv2
 from keras.utils import to_categorical
-import keras.backend as K
-
 
 class ImageGenerator(Sequence):
     """ 
