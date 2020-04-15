@@ -2,47 +2,39 @@ import pandas as pd
 import numpy as np
 import os
 import argparse
-import ast
 
 def get_unique_labels(csv_dir):
   """
-  Returns a list of unique labels since each csv file has a different list of labels
+  Returns a list of unique labels in a directory of csv files since each csv file has a different list of labels
   """
   csv_files = [file for file in os.listdir(csv_dir) if file.endswith('.csv')]
   all_cols = []
   for csv_file in csv_files:
     df = pd.read_csv(os.path.join(csv_dir,csv_file))
-    temp = [ast.literal_eval(df['Labels'][idx]) for idx in range(len(df))]
-    df_cols = [item for sublist in temp for item in sublist]
-    all_cols.append(df_cols)
+    au_cols = ['AU' in col_name for col_name in df.columns]
+    audf = df[list(np.array(df.columns)[au_cols])]
+    all_cols.append(audf.columns.to_list())
   unique_labels = list(set([item for sublist in all_cols for item in sublist]))
   return unique_labels
 
 
-def second_format(first_format_csv_dir, second_format_save_dir):
+def add_AU_columns(df, map_dict):
   """
-  Uses the csv files after the first format to 
+  Adds AU columns back to the dataframe but this time, each df will be uniform as they will all have the same columns.
+  Presence of an AU is indicated by 1, absence is indicated by 0
   """
-  unique_labels = get_unique_labels(first_format_csv_dir) 
-  map_dict = {}
-  for count,i in enumerate(unique_labels):
-    map_dict[i] = count
-  csv_filenames = [file for file in os.listdir(first_format_csv_dir) if file.endswith('.csv')]
-  for file in csv_filenames:
-    df = pd.read_csv(os.path.join(first_format_csv_dir,file))
-    # add separate columns for each AU and initialize them to 0
-    df = df.assign(**map_dict)
-    df.iloc[:,2:] = 0
-  
-    # assign 1 to AU column if that AU exists in the "Labels" column
-    for row_index in df.index:
-      for column_name in ast.literal_eval(df.iloc[row_index]['Labels']):
-        df.at[row_index,column_name] = 1
+  # add separate columns for each AU and initialize them to 0
+  df = df.assign(**map_dict)
+  df.iloc[:,2:] = 0
 
-    df.to_csv('{}'.format(os.path.join(second_format_save_dir,file)),index=False)
+  # assign 1 to AU column if that AU exists in the "Labels" column
+  for row_index in df.index:
+    for column_name in df.iloc[row_index]['Labels']:
+      df.at[row_index,column_name] = 1
+  return df
 
 
-def first_format(original_csv_dir, save_dir):
+def format_csv_files(original_csv_dir, save_dir):
   """
   Formats and parses the csv files to get the files that have AU data in them, otherwise discards them. Discarded filenames are
   saved in a file called discard.txt. Also saves the formatted csv files with the same names in the save_dir directory.
@@ -59,6 +51,10 @@ def first_format(original_csv_dir, save_dir):
     os.makedirs(save_dir)
   discardCount = 0
   discardFile = 'discard.txt'
+  unique_labels = get_unique_labels(original_csv_dir)
+  map_dict = {}
+  for count,i in enumerate(unique_labels):
+    map_dict[i] = count
 
   csv_filenames = [file for file in os.listdir(original_csv_dir) if file.endswith('.csv')]
   print('Found {} csv files in {}'.format(len(csv_filenames),original_csv_dir))
@@ -111,6 +107,7 @@ def first_format(original_csv_dir, save_dir):
         finaldict[master['Seconds'][idx]] = pd.DataFrame(rows[rows != 0]).transpose().columns.to_list()
         
       saving_df = pd.DataFrame(list(zip(list(finaldict.keys()),list(finaldict.values()))),columns=['Time','Labels'])
+      saving_df = add_AU_columns(saving_df,map_dict)
       # drop frame at time=0 if it exists because there are multiple files having empty images at t=0
       if saving_df['Time'][0]==0:
         saving_df = saving_df.drop([0])
@@ -129,8 +126,5 @@ if __name__ == '__main__':
                       help="Directory where formatted csv files will be saved.\n" 
                       "If directory does not exist, one will be created")
   args = parser.parse_args()
-  initial_format_save_dir = 'initial_format/'
-  first_format(args.csv_dir,initial_format_save_dir)
-  print('Completed first formatting, starting second format now ...')
-  second_format(initial_format_save_dir,args.save_dir)
-  print('Completed final formatting, final csv files are available in {}'.format(args.save_dir))
+  format_csv_files(args.csv_dir, args.save_dir)
+  print('Completed CSV formatting, they are available in {}'.format(args.save_dir))
