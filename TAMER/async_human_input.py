@@ -1,6 +1,7 @@
 import pygame
 import os
-os.environ['SDL_VIDEO_WINDOW_POS'] = '1000,200'
+
+os.environ["SDL_VIDEO_WINDOW_POS"] = "1000,200"
 
 white = (255, 255, 255)
 green = (0, 255, 0)
@@ -8,8 +9,8 @@ blue = (0, 0, 128)
 pygame.init()
 screen = pygame.display.set_mode((640, 480))
 screen.fill(white)
-pygame.display.set_caption('Pygame Keyboard Test')
-font = pygame.font.Font('freesansbold.ttf', 32)
+pygame.display.set_caption("Pygame Keyboard Test")
+font = pygame.font.Font("freesansbold.ttf", 32)
 pygame.mouse.set_visible(0)
 
 
@@ -30,12 +31,9 @@ while True:
                 pygame.display.update()
                 pass
 
-
-
             # print("key pressed")
             # time.sleep(0.1)
         pygame.display.update()
-
 
 
 ## Using cv2 for continous human input (wasn't asynchornous enough)

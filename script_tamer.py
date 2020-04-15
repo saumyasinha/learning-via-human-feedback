@@ -7,18 +7,19 @@ import pygame
 interval = 60
 fps = 60
 
+
 def getHumanSignal(screen, lasttime):
 
     pressed = pygame.key.get_pressed()
     now = time.time()
     # positive signal ((now-lasttime)>interval is to overcome the effect of human pressing the key for longer milliseconds
-    if pressed[pygame.K_w] and (now-lasttime)>interval:
-        screen.fill((0,255,0))
+    if pressed[pygame.K_w] and (now - lasttime) > interval:
+        screen.fill((0, 255, 0))
         lasttime = now
         return 1, lasttime
-    #negative signal
-    elif pressed[pygame.K_a] and (now-lasttime)>interval:
-        screen.fill((255,0,0))
+    # negative signal
+    elif pressed[pygame.K_a] and (now - lasttime) > interval:
+        screen.fill((255, 0, 0))
         lasttime = now
         return -1, lasttime
     else:
@@ -27,8 +28,8 @@ def getHumanSignal(screen, lasttime):
 
 
 ## Attempt to implement Algorithm1 of the Deep TAMER paper
-if __name__ == '__main__':
-    env = gym.make('MountainCar-v0')
+if __name__ == "__main__":
+    env = gym.make("MountainCar-v0")
 
     env.reset()
     env.render()
@@ -38,11 +39,10 @@ if __name__ == '__main__':
 
     ## hyperparameters
     num_episodes = 100
-    buffer_update_interval=75
+    buffer_update_interval = 75
 
     reward_list = []
     avg_reward_list = []
-
 
     ## pygame initialization
     pygame.init()
@@ -50,7 +50,6 @@ if __name__ == '__main__':
     screen.fill((0, 0, 0))
     pygame.display.flip()
     clock = pygame.time.Clock()
-
 
     for episode in range(num_episodes):
 
@@ -69,7 +68,7 @@ if __name__ == '__main__':
         i = 0
         j = 0
         k = 0
-        while done!=True and is_exit!=True:
+        while done != True and is_exit != True:
 
             ## Choosing action via a greedy policy; action = argmax H(s,a)
             action = agent.getAction(state)
@@ -85,32 +84,30 @@ if __name__ == '__main__':
             tot_reward += reward
 
             # receive human signal (if any)
-            signal,lasttime = getHumanSignal(screen, lasttime)
+            signal, lasttime = getHumanSignal(screen, lasttime)
             pygame.display.flip()
             # print(signal)
 
             ## If human gives a feedback
-            if signal!=0:
+            if signal != 0:
 
                 feedback_time = time.time()
                 ## Update weights (assigning credit) of all x and build the set Dj for the current feedback
                 agent.updateWeightsforSignal(signal, feedback_time)
-                j=j+1
+                j = j + 1
 
                 ## mini-batch SGD update of the reward model(H)
                 agent.SGD_update("human")
-                k = k+1
-
+                k = k + 1
 
             ##Feedback replay buffer used in the paper: update the model at regular intervals
-            if (i%buffer_update_interval)==0 and len(agent.total_experiences)>0:
+            if (i % buffer_update_interval) == 0 and len(agent.total_experiences) > 0:
                 agent.SGD_update("fixed")
-                k=k+1
-
+                k = k + 1
 
             state = state2
 
-            i=i+1
+            i = i + 1
 
             # process pygame event queue
             for event in pygame.event.get():
@@ -135,20 +132,6 @@ if __name__ == '__main__':
             reward_list = []
 
         if (episode + 1) % 100 == 0:
-            print('Episode {} Average Reward: {}'.format(episode + 1, avg_reward))
-
+            print("Episode {} Average Reward: {}".format(episode + 1, avg_reward))
 
     env.close()
-
-
-
-
-
-
-
-
-
-
-
-
-
