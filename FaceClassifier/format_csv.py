@@ -3,7 +3,38 @@ import numpy as np
 import os
 import argparse
 
-def format_save_csv(original_csv_dir,save_dir):
+def get_unique_labels(csv_dir):
+  """
+  Returns a list of unique labels in a directory of csv files since each csv file has a different list of labels
+  """
+  csv_files = [file for file in os.listdir(csv_dir) if file.endswith('.csv')]
+  all_cols = []
+  for csv_file in csv_files:
+    df = pd.read_csv(os.path.join(csv_dir,csv_file))
+    au_cols = ['AU' in col_name for col_name in df.columns]
+    audf = df[list(np.array(df.columns)[au_cols])]
+    all_cols.append(audf.columns.to_list())
+  unique_labels = list(set([item for sublist in all_cols for item in sublist]))
+  return unique_labels
+
+
+def add_AU_columns(df, map_dict):
+  """
+  Adds AU columns back to the dataframe but this time, each df will be uniform as they will all have the same columns.
+  Presence of an AU is indicated by 1, absence is indicated by 0
+  """
+  # add separate columns for each AU and initialize them to 0
+  df = df.assign(**map_dict)
+  df.iloc[:,2:] = 0
+
+  # assign 1 to AU column if that AU exists in the "Labels" column
+  for row_index in df.index:
+    for column_name in df.iloc[row_index]['Labels']:
+      df.at[row_index,column_name] = 1
+  return df
+
+
+def format_csv_files(original_csv_dir, save_dir):
   """
   Formats and parses the csv files to get the files that have AU data in them, otherwise discards them. Discarded filenames are
   saved in a file called discard.txt. Also saves the formatted csv files with the same names in the save_dir directory.
@@ -12,21 +43,26 @@ def format_save_csv(original_csv_dir,save_dir):
   - original_csv_dir: str, directory that contains the original csv files/
   - save_dir: str, directory to which the formatted csv files will be written to. If it doesn't exist, one will be created.
 
-  Returns
-  Nothing, zilch, nada.
+  Returns:
+    Doesn't return anything but saves csv files with columns Time, Labels, AU00, AU01, ... AU50
   """
   if not os.path.isdir(save_dir):
     print('Destination directory "{}" does not exist, creating one now...'.format(save_dir))
     os.makedirs(save_dir)
   discardCount = 0
   discardFile = 'discard.txt'
-  labels = [file for file in os.listdir(original_csv_dir) if file.endswith('.csv')]
-  print('Found {} csv files in {}'.format(len(labels),original_csv_dir))
+  unique_labels = get_unique_labels(original_csv_dir)
+  map_dict = {}
+  for count,i in enumerate(unique_labels):
+    map_dict[i] = count
+
+  csv_filenames = [file for file in os.listdir(original_csv_dir) if file.endswith('.csv')]
+  print('Found {} csv files in {}'.format(len(csv_filenames),original_csv_dir))
   file = open(discardFile,'w')
-  for index in range(len(labels)):
-    # print('Reading in {}'.format(labels[i]))
+  for csv_name in csv_filenames:
+    # print('Reading in {}'.format(csv_name))
     # read csv
-    df = pd.read_csv(os.path.join(original_csv_dir,labels[index]))
+    df = pd.read_csv(os.path.join(original_csv_dir,csv_name))
     # get the columns that have "AU" in them
     au_cols = ['AU' in col_name for col_name in df.columns]
 
@@ -40,8 +76,8 @@ def format_save_csv(original_csv_dir,save_dir):
       # Get seconds as integers
       audf['Seconds']=audf['Time'].astype(int)
     except KeyError:
-      # print('Key not found, discarding {}'.format(labels[index]))
-      file.write('{}\n'.format(labels[index]))
+      # print('Key not found, discarding {}'.format(csv_name))
+      file.write('{}\n'.format(csv_name))
       discardCount+=1
       continue
 
@@ -69,14 +105,15 @@ def format_save_csv(original_csv_dir,save_dir):
       finaldict = {}
       for idx,rows in aus.iterrows():
         finaldict[master['Seconds'][idx]] = pd.DataFrame(rows[rows != 0]).transpose().columns.to_list()
-        #master.to_csv('{}'.format(os.path.join(save_dir,labels[index])),index=False)
+        
       saving_df = pd.DataFrame(list(zip(list(finaldict.keys()),list(finaldict.values()))),columns=['Time','Labels'])
+      saving_df = add_AU_columns(saving_df,map_dict)
       # drop frame at time=0 if it exists because there are multiple files having empty images at t=0
       if saving_df['Time'][0]==0:
         saving_df = saving_df.drop([0])
-      saving_df.to_csv('{}'.format(os.path.join(save_dir,labels[index])),index=False)
+      saving_df.to_csv('{}'.format(os.path.join(save_dir,csv_name)),index=False)
     else:
-      file.write('{}\n'.format(labels[index]))
+      file.write('{}\n'.format(csv_name))
       discardCount+=1
   file.close()
   print('Discarded a total of {} files, discarded filenames are available in {}'.format(discardCount,discardFile))
@@ -89,4 +126,5 @@ if __name__ == '__main__':
                       help="Directory where formatted csv files will be saved.\n" 
                       "If directory does not exist, one will be created")
   args = parser.parse_args()
-  format_save_csv(args.csv_dir,args.save_dir)
+  format_csv_files(args.csv_dir, args.save_dir)
+  print('Completed CSV formatting, they are available in {}'.format(args.save_dir))
