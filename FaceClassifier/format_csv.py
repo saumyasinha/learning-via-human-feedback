@@ -39,7 +39,7 @@ def format_csv_files(original_csv_dir, save_dir):
   Formats and parses the csv files to get the files that have AU data in them, otherwise discards them. Discarded filenames are
   saved in a file called discard.txt. Also saves the formatted csv files with the same names in the save_dir directory.
 
-  Args:
+  Args:,dtype='int'
   - original_csv_dir: str, directory that contains the original csv files/
   - save_dir: str, directory to which the formatted csv files will be written to. If it doesn't exist, one will be created.
 
@@ -52,9 +52,13 @@ def format_csv_files(original_csv_dir, save_dir):
   discardCount = 0
   discardFile = 'discard.txt'
   unique_labels = get_unique_labels(original_csv_dir)
+  # create a mapping dictionary of all the unique AU labels and assign them some value, it doesn't matter which value.
   map_dict = {}
   for count,i in enumerate(unique_labels):
     map_dict[i] = count
+
+  # add one for neutral expressions
+  map_dict['Neutral'] = 0
 
   csv_filenames = [file for file in os.listdir(original_csv_dir) if file.endswith('.csv')]
   print('Found {} csv files in {}'.format(len(csv_filenames),original_csv_dir))
@@ -111,7 +115,19 @@ def format_csv_files(original_csv_dir, save_dir):
       # drop frame at time=0 if it exists because there are multiple files having empty images at t=0
       if saving_df['Time'][0]==0:
         saving_df = saving_df.drop([0])
-      saving_df.to_csv('{}'.format(os.path.join(save_dir,csv_name)),index=False)
+      # don't save dataframes that might be empty after removing the 0th row
+      if len(saving_df)==0:
+        file.write('{}\n'.format(csv_name))
+        discardCount += 1
+      else:
+        # add a row for neutral frame by choosing a random neutral frame
+        dftimes = df['Time'].to_numpy(dtype='float')
+        alltimes = np.arange(1,int(max(dftimes)),dtype='float')
+        saving_df = saving_df.append(pd.Series(0, index=saving_df.columns), ignore_index=True)
+        saving_df.at[saving_df.index[-1],'Time'] = np.random.choice(list(set(alltimes)-set(np.array(dftimes,dtype='float'))))
+        saving_df.at[saving_df.index[-1],'Labels'] = ['Neutral']
+        saving_df.at[saving_df.index[-1],'Neutral'] = 1
+        saving_df.to_csv('{}'.format(os.path.join(save_dir,csv_name)),index=False)
     else:
       file.write('{}\n'.format(csv_name))
       discardCount+=1
