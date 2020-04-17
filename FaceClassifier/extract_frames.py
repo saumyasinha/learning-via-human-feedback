@@ -5,17 +5,17 @@ import os
 import argparse
 import cv2
 
-def save_frame(frame, output_dir, subdir_name, fname_prefix, timestep, save_format):
+def save_frame(frame, output_dir, subdir_name, timestep, save_format):
   """
   Saves one frame at a time.
   """
   if save_format == 'npy':
-    np.save('{}{}.npy'.format(os.path.join(output_dir,subdir_name,fname_prefix), int(timestep)), frame)
+    np.save('{}.npy'.format(os.path.join(output_dir,subdir_name,str(int(timestep)))), frame)
   else:
-    cv2.imwrite('{}{}.{}'.format(os.path.join(output_dir,subdir_name,fname_prefix), int(timestep), save_format), cv2.cvtColor(frame, cv2.COLOR_RGB2BGR))
+    cv2.imwrite('{}.{}'.format(os.path.join(output_dir,subdir_name,str(int(timestep))), save_format), cv2.cvtColor(frame, cv2.COLOR_RGB2BGR))
 
 
-def extract_frames(csv_dir, video_dir, output_dir, fname_prefix, save_format):
+def extract_frames(csv_dir, video_dir, output_dir, save_format):
   """
   Extracts frames from video using csv data. It then saves those frames in separate directories
   inside `output_dir` with the names of the directories being the name of the videos and the 
@@ -24,7 +24,6 @@ def extract_frames(csv_dir, video_dir, output_dir, fname_prefix, save_format):
   Args:
   - csv_dir: str, path to directory containing the formatted csv files with columns Time and Labels.
   - video_dir: str, path to directory containing the labeled flash videos.
-  - fname_prefix: str, filename prefix for the saved image/frame like 'frame' or 'data'. Timestep will be appended to fname_prefix
   - output_dir: str, path to directory where sub-directories containing frames will be saved. This will be created if it does not exist.
   - save_format: str, file format for the frames.
 
@@ -36,6 +35,7 @@ def extract_frames(csv_dir, video_dir, output_dir, fname_prefix, save_format):
     os.makedirs(output_dir)
 
   csv_files = [file for file in os.listdir(csv_dir) if file.endswith('.csv')]
+  saveCount = 0
   print('Found {} csv files in {}'.format(len(csv_files),csv_dir))
   print('Starting extraction of frames ...\n')
   for csv in csv_files:
@@ -53,7 +53,10 @@ def extract_frames(csv_dir, video_dir, output_dir, fname_prefix, save_format):
       # extract a frame at the specified timestep
       frame = clip.get_frame(timestep) 
       # save to file
-      save_frame(frame, output_dir, subdir_name, fname_prefix, timestep, save_format)
+      save_frame(frame, output_dir, subdir_name, timestep, save_format)
+      saveCount += 1
+  print('Saved a total of {} images'.format(saveCount))
+
 
 if __name__ == '__main__':
   parser = argparse.ArgumentParser()
@@ -63,13 +66,11 @@ if __name__ == '__main__':
                       help="Path to the directory containing the video files")
   parser.add_argument('--output_dir', default='output/', type=str,
                       help="Directory where frames will be saved. If it doesn't exist, one will be created")
-  parser.add_argument('--fname_prefix', default='frame', type=str,
-                      help="Prefix for the saved file")
   parser.add_argument('--save_format', default='png', type=str,
                       help="Type of file to be saved. Choose among png, jpg, jpeg or npy for ideal results")
   args = parser.parse_args()
   extract_frames(csv_dir=args.csv_dir,
                  video_dir=args.video_dir,
                  output_dir=args.output_dir,
-                 fname_prefix=args.fname_prefix,
                  save_format=args.save_format)
+  print('Finished extracting and saving frames')
