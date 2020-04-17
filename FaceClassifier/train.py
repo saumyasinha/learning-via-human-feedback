@@ -13,9 +13,9 @@ from keras.applications import VGG16, Xception
 from keras.layers import Dense, Flatten, Dropout, GlobalAveragePooling2D
 from losses import focal_loss
 import pandas as pd
-from model import create_model
+from model import custom_model
 
-def prepare_data(csv_dir)
+def prepare_data(csv_dir):
   list_dfs = []
   for i in os.listdir(csv_dir):
     df = pd.read_csv(os.path.join(csv_dir,i))
@@ -63,11 +63,10 @@ def train(args):
                              shuffle=True)
 
   # build the model
-  model = create_model(input_shape=(args.input_height,args.input_width,args.input_channels),
+  model = custom_model(input_shape=(args.input_height,args.input_width,args.input_channels),
                        num_classes=args.num_classes, final_activation_fn='softmax')
-  print(model.summary())
   # base_model = VGG16(weights=None, include_top=False, input_shape=(args.input_height, args.input_width, args.input_channels))
-  # for layer in base.layers[:-4]:
+  # for layer in base_model.layers[:-4]:
   #  layer.trainable = False
   # model = Sequential()
   # base_model = Xception(input_shape=(args.input_height, args.input_width, args.input_channels), include_top=False)
@@ -80,10 +79,11 @@ def train(args):
   # x = GlobalAveragePooling2D()(x)
   # x = Dense(args.num_classes, activation="softmax")(x)
   # model = Model(base_model.input, x)
+  print(model.summary())
   adam = Adam(learning_rate=args.lr, clipnorm=1.0, clipvalue=0.5)
   model.compile(optimizer=adam, loss=focal_loss, metrics=["accuracy"])
 
-  checkpoint = ModelCheckpoint(args.model_name, verbose=1, save_best_only=True)
+  checkpoint = ModelCheckpoint(os.path.join(args.model_dir,args.model_name), verbose=1, save_best_only=True)
   learn_rate = ReduceLROnPlateau(monitor="val_loss", factor=0.8, patience=10, verbose=1)
   callback_list = [checkpoint, learn_rate]
   history = model.fit_generator(train_gen, validation_data=valid_gen, epochs=args.epochs, verbose=1, callbacks=callback_list)
@@ -93,7 +93,7 @@ def train(args):
 if __name__ == "__main__":
 
   parser = argparse.ArgumentParser()
-
+  parser.add_argument("--model_dir", default='weights/', type=str, help="Directory where model will be stored")
   parser.add_argument("--model_name", default='model.h5', type=str, help="File Name of .h5 file \
                       which will contain the weights and saved in current directory")
   parser.add_argument("--image_dir", default='imgs/', type=str, help="Directory containing the images in sub-directories")
@@ -106,7 +106,7 @@ if __name__ == "__main__":
   parser.add_argument("--num_classes", default=25, type=int, help="Number of classes")
   parser.add_argument("--batch_size", default=16, type=int, help="Batch size for the model")
   parser.add_argument("--lr", default=1e-3, type=float, help="Learning rate for the model")
-  parser.add_argument("--epochs", default=100, type=int, help="Number of epochs to train the model")
+  parser.add_argument("--epochs", default=500, type=int, help="Number of epochs to train the model")
   parser.add_argument("--augment", default=False, type=bool, help="Flag, set to True if data augmentation needs to be enabled")
   parser.add_argument("--test_size", default=0.20, type=float, help="Fraction of training image to use for validation during training")
 
