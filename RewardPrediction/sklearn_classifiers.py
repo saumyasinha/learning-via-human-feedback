@@ -44,13 +44,15 @@ def train(X, y, clf_name):
     ## standard prepreocessing
     X = StandardScaler().fit_transform(X)
 
-    X_train, X_test, y_train, y_test = \
-        train_test_split(X, y, test_size=.2, random_state=42)
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.1, random_state=1)
+
+
+    X_train, X_val, y_train, y_val = train_test_split(X_train, y_train, test_size=0.15, random_state=1)
 
     clf.fit(X_train, y_train)
-    score = clf.score(X_test, y_test)
+    score = clf.score(X_val, y_val)
 
-    print("Accuracy of "+clf_name+":"+str(score))
+    print("Validation Accuracy of "+clf_name+":"+str(score))
 
     predictions = clf.predict(X)
 
