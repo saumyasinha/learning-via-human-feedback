@@ -1,5 +1,5 @@
 ###
-# Using SGD classfier to do online training (using partial fit)
+# Using SGD classifier to do online training (online SVM by default)
 ###
 
 import numpy as np
@@ -12,7 +12,7 @@ n_features = 16
 ## list of class labels
 n_classes = [0,1]
 
-## Initialize the SGD classifier with default parameters
+## Initialize the SGD classifier
 clf = SGDClassifier()
 
 

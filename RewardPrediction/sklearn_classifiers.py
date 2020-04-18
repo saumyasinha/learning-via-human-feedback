@@ -5,18 +5,21 @@ from sklearn.svm import SVC
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.datasets import make_classification
 
-
+n_features = 16
 classifiers = ["Linear SVM", "RBF SVM", "Random Forest"]
 
+
 def get_dataset():
-    X, y = make_classification(n_features=16, n_redundant=0, n_informative=2,
+
+    ## needs to be changed, creating a temporary dataset now
+    X, y = make_classification(n_features=n_features, n_redundant=0, n_informative=2,
                                random_state=1, n_clusters_per_class=1)
     rng = np.random.RandomState(2)
     X += 2 * rng.uniform(size=X.shape)
 
     return X, y
 
-
+## name to classifier mapping
 def classfier_mapping():
     clf_mapping = {
         "Linear SVM" : SVC(kernel="linear", C=0.025),
@@ -27,11 +30,20 @@ def classfier_mapping():
     return clf_mapping
 
 
-def train(X,y, clf_name):
+def train(X, y, clf_name):
+    '''
+
+    :param X: input with 'n_features' features
+    :param y: binary output
+    :param clf_name: the name of the classifier used to train the model
+    :return: model predictions of input
+    '''
 
     clf= classfier_mapping()[clf_name]
 
+    ## standard prepreocessing
     X = StandardScaler().fit_transform(X)
+
     X_train, X_test, y_train, y_test = \
         train_test_split(X, y, test_size=.2, random_state=42)
 
