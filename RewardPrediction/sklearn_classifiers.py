@@ -9,14 +9,15 @@ from sklearn.datasets import make_classification
 classifiers = ["Linear SVM", "RBF SVM", "Random Forest"]
 
 def get_dataset():
-    X, y = make_classification(n_features=2, n_redundant=0, n_informative=2,
+    X, y = make_classification(n_features=16, n_redundant=0, n_informative=2,
                                random_state=1, n_clusters_per_class=1)
     rng = np.random.RandomState(2)
     X += 2 * rng.uniform(size=X.shape)
+
     return X, y
 
 
-def classfier_mapping(classifiers):
+def classfier_mapping():
     clf_mapping = {
         "Linear SVM" : SVC(kernel="linear", C=0.025),
         "RBF SVM" : SVC(gamma=2, C=1),
@@ -28,7 +29,7 @@ def classfier_mapping(classifiers):
 
 def train(X,y, clf_name):
 
-    clf= classfier_mapping(classifiers)[clf_name]
+    clf= classfier_mapping()[clf_name]
 
     X = StandardScaler().fit_transform(X)
     X_train, X_test, y_train, y_test = \
