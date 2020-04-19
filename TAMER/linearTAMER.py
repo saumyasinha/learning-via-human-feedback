@@ -1,6 +1,8 @@
 import os
 from itertools import count
 from sys import stdout
+from pathlib import Path
+import pickle
 import time
 import numpy as np
 import gym
@@ -16,6 +18,7 @@ pygame.init()
 
 FONT = pygame.font.Font("freesansbold.ttf", 32)
 ACTION_MAP = {0: "left", 1: "none", 2: "right"}
+MODELS_DIR = Path(__file__).parent.joinpath('models')
 
 # set position of pygame window (so it doesn't overlap with gym)
 os.environ["SDL_VIDEO_WINDOW_POS"] = "1000,100"
@@ -54,7 +57,7 @@ def show_action(screen, action):
     """
     screen.fill((0, 0, 0))
     pygame.display.flip()
-    text = FONT.render(ACTION_MAP[action], True, (0, 255, 0))
+    text = FONT.render(ACTION_MAP[action], True, (255, 255, 255))
     text_rect = text.get_rect()
     text_rect.center = (100, 50)
     screen.blit(text, text_rect)
@@ -126,6 +129,7 @@ class TAMERAgent:
         num_episodes,
         tame=True,
         ts_len=0.2,
+        load_model=False  # if True, loads last trained model
     ):
 
         if tame:
@@ -141,6 +145,7 @@ class TAMERAgent:
         self.discount_factor = discount_factor  # not used for TAMER
         self.epsilon = epsilon if not tame else 0  # no epsilon for TAMER
         self.num_episodes = num_episodes
+        self.min_eps = min_eps
 
         # Calculate episodic reduction in epsilon
         self.epsilon_step = (epsilon - min_eps) / num_episodes
@@ -156,7 +161,12 @@ class TAMERAgent:
         else:
             return np.random.randint(0, env.action_space.n)
 
-    def train(self):
+    def train(self, save_model=False):
+        """
+        TAMER (or Q learning) training loop
+        Args:
+            save_model: Optionally save Q or H model to file
+        """
         # pygame display init
         screen = pygame.display.set_mode((200, 100))
         screen.fill((0, 0, 0))
@@ -202,10 +212,12 @@ class TAMERAgent:
                 state = next_state
 
             # Decay epsilon
-            if self.epsilon > min_eps:
+            if self.epsilon > self.min_eps:
                 self.epsilon -= self.epsilon_step
 
         self.env.close()
+        if save_model:
+            self.save_model()
 
     def play(self, n=1):
         """ Run an episode with trained agent """
@@ -219,6 +231,29 @@ class TAMERAgent:
                 self.env.render()
                 state = next_state
         self.env.close()
+
+    def save_model(self, filename='last_trained_model'):
+        """
+        Save H or Q model to models dir
+        Args:
+            filename: name of pickled file (minus .p extension)
+        """
+        model = self.H if self.tame else self.Q
+        with open(f'{MODELS_DIR.joinpath(filename)}.p', 'wb') as f:
+            pickle.dump(model, f)
+
+    def load_model(self, filename='last_trained_model'):
+        """
+        Load H or Q model from models dir
+        Args:
+            filename: name of pickled file (minus .p extension)
+        """
+        with open(f'{MODELS_DIR.joinpath(filename)}.p', 'wb') as f:
+            model = pickle.load(f)
+        if self.tame:
+            self.H = model
+        else:
+            self.Q = model
 
 
 if __name__ == "__main__":
@@ -246,6 +281,7 @@ if __name__ == "__main__":
         num_episodes,
         tame,
         tamer_training_timestep,
+        load_model=True
     )
-    agent.train()
+    # agent.train(save_model=True)
     agent.play(3)
