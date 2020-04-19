@@ -40,8 +40,6 @@ def get_scalar_feedback(screen):
                 screen.fill((255, 0, 0))
                 reward = -1
                 break
-    else:
-        screen.fill((0, 0, 0))
     pygame.display.flip()
     # print(reward)
     return reward
@@ -150,7 +148,6 @@ class TAMERAgent:
         screen.fill((0, 0, 0))
         pygame.display.flip()
 
-        # Run Q learning algorithm
         for i in range(self.num_episodes):
             print(f'Episode: {i + 1}  Timestep:', end='')
             tot_reward = 0
@@ -215,7 +212,7 @@ if __name__ == "__main__":
     discount_factor = 1
     epsilon = 0  # vanilla Q learning actually works well with no random exploration
     min_eps = 0
-    num_episodes = 3
+    num_episodes = 1
     tame = True  # set to false for vanilla Q learning
 
     # set a timestep for training TAMER
