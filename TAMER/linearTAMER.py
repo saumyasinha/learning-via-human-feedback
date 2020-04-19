@@ -207,16 +207,17 @@ class TAMERAgent:
 
         self.env.close()
 
-    def play(self):
+    def play(self, n=1):
         """ Run an episode with trained agent """
         self.epsilon = 0
-        state = self.env.reset()
-        done = False
-        while not done:
-            action = self.act(state)
-            next_state, reward, done, info = self.env.step(action)
-            self.env.render()
-            state = next_state
+        for _ in range(n):
+            state = self.env.reset()
+            done = False
+            while not done:
+                action = self.act(state)
+                next_state, reward, done, info = self.env.step(action)
+                self.env.render()
+                state = next_state
         self.env.close()
 
 
@@ -232,7 +233,8 @@ if __name__ == "__main__":
     tame = True  # set to false for vanilla Q learning
 
     # set a timestep for training TAMER
-    # the more time per step, the easier for the human but the longer it takes to train (in real time)
+    # the more time per step, the easier for the human
+    # but the longer it takes to train (in real time)
     # 0.2 seconds is fast but doable
     tamer_training_timestep = 0.2  # seconds
 
@@ -246,4 +248,4 @@ if __name__ == "__main__":
         tamer_training_timestep,
     )
     agent.train()
-    agent.play()
+    agent.play(3)
