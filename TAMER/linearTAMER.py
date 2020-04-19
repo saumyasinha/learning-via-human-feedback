@@ -129,17 +129,21 @@ class TAMERAgent:
         num_episodes,
         tame=True,
         ts_len=0.2,
-        load_model=False  # if True, loads last trained model
+        load_last_model=False  # if True, loads last trained model
     ):
-
-        if tame:
-            self.H = LinearFunctionApproximator(env)  # init H function
-        else:  # optionally run as standard Q Learning
-            self.Q = LinearFunctionApproximator(env)  # init Q function
-
         self.tame = tame
         self.ts_len = ts_len  # length of timestep for training TAMER
         self.env = env
+
+        # init model
+        if load_last_model:
+            print('Last model loaded')
+            self.load_model()
+        else:
+            if tame:
+                self.H = LinearFunctionApproximator(env)  # init H function
+            else:  # optionally run as standard Q Learning
+                self.Q = LinearFunctionApproximator(env)  # init Q function
 
         # Hyperparameters
         self.discount_factor = discount_factor  # not used for TAMER
@@ -167,6 +171,7 @@ class TAMERAgent:
         Args:
             save_model: Optionally save Q or H model to file
         """
+
         # pygame display init
         screen = pygame.display.set_mode((200, 100))
         screen.fill((0, 0, 0))
@@ -248,7 +253,7 @@ class TAMERAgent:
         Args:
             filename: name of pickled file (minus .p extension)
         """
-        with open(f'{MODELS_DIR.joinpath(filename)}.p', 'wb') as f:
+        with open(f'{MODELS_DIR.joinpath(filename)}.p', 'rb') as f:
             model = pickle.load(f)
         if self.tame:
             self.H = model
@@ -281,7 +286,7 @@ if __name__ == "__main__":
         num_episodes,
         tame,
         tamer_training_timestep,
-        load_model=True
+        load_last_model=True
     )
     # agent.train(save_model=True)
-    agent.play(3)
+    agent.play(2)
