@@ -9,25 +9,41 @@ import argparse
 import albumentations
 from keras.regularizers import l2
 from keras.models import Sequential, Model
-from keras.applications import VGG16, Xception
-from keras.layers import Dense, Flatten, Dropout, GlobalAveragePooling2D
+from keras.applications import Xception, InceptionV3, VGG16
+from keras.layers import Dense, Flatten, Dropout, GlobalAveragePooling2D, Input
 from losses import focal_loss
 import pandas as pd
-from model import custom_model
+from model import custom_model, VGG16_model
 
-def prepare_data(csv_dir):
+
+def prepare_data(csv_dir,dropThresh=100):
   list_dfs = []
+  dropCols = []
   for i in os.listdir(csv_dir):
     df = pd.read_csv(os.path.join(csv_dir,i))
     # append only the path+AU columns i.e no need for Time and Labels columns
     list_dfs.append(df.iloc[:,2:])
   # Turn the list into a master dataframe and rearrange the columns
-  return pd.concat(list_dfs)[df.columns[2:]]
+  df = pd.concat(list_dfs)[df.columns[2:]]
+  for i in df.columns[1:]:
+    if len(df[df[i]==1])<dropThresh:
+      dropCols.append(i)
+  # drop the columns having counts<dropThresh
+  df = df.drop(dropCols,axis=1)
+  # Also drop any rows that might be all 0s
+  df = df[(df.iloc[:,1:].T != 0).any()].reset_index(drop=True)
+  return df
 
 def train(args):
   df = prepare_data(args.csv_dir)
+  print(df)
+  num_classes = len(df.columns[1:])
   # split data into training set and validation set
   X_train, X_val = train_test_split(list(df.iloc[:,0]), shuffle=True, test_size=args.test_size)
+  file = open('{}.txt'.format(os.path.splitext(args.model_name)[0]),'w')
+  file.write('Validation images: \n{}'.format(X_val))
+  file.close()
+  print('Saved list of validation images in {}.txt'.format(os.path.splitext(args.model_name)[0]))
 
   AUGMENTATIONS = albumentations.Compose([
                   albumentations.HorizontalFlip(p=0.5),
@@ -41,19 +57,19 @@ def train(args):
   train_gen = ImageGenerator(df=df,
                              image_dir=args.image_dir,
                              image_list=X_train, 
-                             num_classes=args.num_classes,
+                             num_classes=num_classes,
                              input_shape=(args.input_height, args.input_width),
                              batch_size=args.batch_size,
                              num_channels=args.input_channels,
                              augmentation=AUGMENTATIONS,
-                             augment=False,
+                             augment=args.augment,
                              image_format=args.image_format,
                              shuffle=True)
 
   valid_gen = ImageGenerator(df=df,
                              image_dir=args.image_dir,
                              image_list=X_val,
-                             num_classes=args.num_classes,
+                             num_classes=num_classes,
                              input_shape=(args.input_height, args.input_width),
                              batch_size=args.batch_size,
                              num_channels=args.input_channels,
@@ -64,24 +80,20 @@ def train(args):
 
   # build the model
   model = custom_model(input_shape=(args.input_height,args.input_width,args.input_channels),
-                       num_classes=args.num_classes, final_activation_fn='softmax')
-  # base_model = VGG16(weights=None, include_top=False, input_shape=(args.input_height, args.input_width, args.input_channels))
-  # for layer in base_model.layers[:-4]:
-  #  layer.trainable = False
-  # model = Sequential()
-  # base_model = Xception(input_shape=(args.input_height, args.input_width, args.input_channels), include_top=False)
-  # for layer in base_model.layers:
-  #    layer.trainable = False
-  # x = Flatten()(base_model.output)
-  # x = Dense(1024, activation='relu')(x)
-  # x = Dropout(0.5)(x)
-  # x = base_model.output
-  # x = GlobalAveragePooling2D()(x)
-  # x = Dense(args.num_classes, activation="softmax")(x)
-  # model = Model(base_model.input, x)
+                       num_classes=num_classes, final_activation_fn='sigmoid')
+  # baseModel = VGG16(weights="imagenet", include_top=False,
+  #                   input_tensor=Input(shape=(args.input_height,args.input_width,args.input_channels)))
+  # construct the head of the model that will be placed on top of the
+  # the base model
+  # headModel = baseModel.output
+  # headModel = Flatten(name="flatten")(headModel)
+  # headModel = Dense(512, activation="relu")(headModel)
+  # headModel = Dropout(0.5)(headModel)
+  # headModel = Dense(num_classes, activation="softmax")(headModel)
+  # model = Model(inputs=baseModel.input, outputs=headModel)
   print(model.summary())
   adam = Adam(learning_rate=args.lr, clipnorm=1.0, clipvalue=0.5)
-  model.compile(optimizer=adam, loss=focal_loss, metrics=["accuracy"])
+  model.compile(optimizer=adam, loss='binary_crossentropy', metrics=["accuracy"])
 
   checkpoint = ModelCheckpoint(os.path.join(args.model_dir,args.model_name), verbose=1, save_best_only=True)
   learn_rate = ReduceLROnPlateau(monitor="val_loss", factor=0.8, patience=10, verbose=1)

@@ -25,7 +25,7 @@ class ImageGenerator(Sequence):
   """
   
   def __init__(self, df=None, image_dir=None, image_list=None,
-               num_classes=25, batch_size=16, input_shape=(240,320),
+               num_classes=None, batch_size=16, input_shape=(240,320),
                num_channels=3, augment=False, to_fit=True, shuffle=True, 
                image_format=None, augmentation=None):
     
@@ -51,22 +51,18 @@ class ImageGenerator(Sequence):
     y = np.zeros((self.batch_size, self.num_classes))
 
     for i, val in enumerate(batch_indices):
-      # print('path:{}.{}'.format(os.path.join(self.image_dir, self.image_list[val]),self.image_format))
       img = cv2.imread('{}.{}'.format(os.path.join(self.image_dir, self.image_list[val]),self.image_format))
       if self.augment:
         augmented = self.augmentation(image=img)
         img = augmented['image']
-
-      if self.num_channels<3:
-        img = self.grayscale(img)
-
       img = self.resize_img(img,resize_dims=(self.input_shape[1],self.input_shape[0]))
+      # if self.num_channels<3:
+      # img = self.grayscale(img)
       img = self.standard_normalize(img)
-      if self.num_channels<3:
-        img = np.reshape(img, (img.shape[0],img.shape[1],self.num_channels))
-
       # replace any NaNs by 1
       img = np.nan_to_num(img,nan=np.float64(1.))
+      if self.num_channels<3:
+        img = np.reshape(img, (img.shape[0],img.shape[1],self.num_channels))
       X[i] = img
 
       label = self.df[self.df['Path']==self.image_list[val]].iloc[:,1:].to_numpy().flatten()
