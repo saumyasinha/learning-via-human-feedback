@@ -8,60 +8,12 @@ import numpy as np
 import gym
 import matplotlib
 import matplotlib.pyplot as plt
-import pygame
 from sklearn.linear_model import SGDRegressor
 from sklearn.kernel_approximation import RBFSampler
 from sklearn import pipeline, preprocessing
 
-matplotlib.use("Agg")  # stops python crashing
-pygame.init()
-
-FONT = pygame.font.Font("freesansbold.ttf", 32)
-ACTION_MAP = {0: "left", 1: "none", 2: "right"}
+MOUNTAINCAR_ACTION_MAP = {0: "left", 1: "none", 2: "right"}
 MODELS_DIR = Path(__file__).parent.joinpath('models')
-
-# set position of pygame window (so it doesn't overlap with gym)
-os.environ["SDL_VIDEO_WINDOW_POS"] = "1000,100"
-
-
-def get_scalar_feedback(screen):
-    """
-    Get human input. 'W' key for positive, 'A' key for negative.
-    Args:
-        screen: pygame screen object
-
-    Returns: scalar reward (1 for positive, -1 for negative)
-    """
-    reward = 0
-    for event in pygame.event.get():
-        if event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_w:
-                screen.fill((0, 255, 0))
-                reward = 1
-                break
-            elif event.key == pygame.K_a:
-                screen.fill((255, 0, 0))
-                reward = -1
-                break
-    pygame.display.flip()
-    # print(reward)
-    return reward
-
-
-def show_action(screen, action):
-    """
-    Show agent's action on pygame screen
-    Args:
-        screen: pygame screen object
-        action: numerical action (for MountainCar environment only currently)
-    """
-    screen.fill((0, 0, 0))
-    pygame.display.flip()
-    text = FONT.render(ACTION_MAP[action], True, (255, 255, 255))
-    text_rect = text.get_rect()
-    text_rect.center = (100, 50)
-    screen.blit(text, text_rect)
-    pygame.display.flip()
 
 
 class LinearFunctionApproximator:
@@ -159,11 +111,11 @@ class TAMERAgent:
 
     def act(self, state):
         """ Epsilon-greedy Policy """
-        if np.random.random() < 1 - epsilon:
+        if np.random.random() < 1 - self.epsilon:
             preds = self.H.predict(state) if self.tame else self.Q.predict(state)
             return np.argmax(preds)
         else:
-            return np.random.randint(0, env.action_space.n)
+            return np.random.randint(0, self.env.action_space.n)
 
     def train(self, save_model=False):
         """
@@ -171,11 +123,11 @@ class TAMERAgent:
         Args:
             save_model: Optionally save Q or H model to file
         """
-
-        # pygame display init
-        screen = pygame.display.set_mode((200, 100))
-        screen.fill((0, 0, 0))
-        pygame.display.flip()
+        if self.tame:
+            # only init pygame display if we're actually training tamer
+            matplotlib.use("Agg")  # stops python crashing
+            from .interface import Interface
+            disp = Interface(action_map=MOUNTAINCAR_ACTION_MAP)
 
         for i in range(self.num_episodes):
             print(f"Episode: {i + 1}  Timestep:", end="")
@@ -188,14 +140,15 @@ class TAMERAgent:
 
                 # Determine next action
                 action = self.act(state)
-                show_action(screen, action)
+                if self.tame:
+                    disp.show_action(action)
 
                 # Get next state and reward
                 next_state, reward, done, info = self.env.step(action)
 
                 if self.tame:
                     time.sleep(self.ts_len)
-                    human_reward = get_scalar_feedback(screen)
+                    human_reward = disp.get_scalar_feedback()
                     if human_reward != 0:
                         self.H.update(state, action, human_reward)
                 else:
@@ -224,18 +177,31 @@ class TAMERAgent:
         if save_model:
             self.save_model()
 
-    def play(self, n=1):
-        """ Run an episode with trained agent """
+    def play(self, n_episdoes=1, render=False):
+        """
+        Run episodes with trained agent
+        Args:
+            n_episdoes: number of episodes
+            render: optionally render episodes
+        """
         self.epsilon = 0
-        for _ in range(n):
+        for i in range(n_episdoes):
             state = self.env.reset()
             done = False
+            tot_reward = 0
             while not done:
                 action = self.act(state)
                 next_state, reward, done, info = self.env.step(action)
-                self.env.render()
+                tot_reward += reward
+                if render:
+                    self.env.render()
                 state = next_state
+            print(f'Episode: {i} Reward: {tot_reward}')
         self.env.close()
+
+    def evaluate(self, n_episdoes=100):
+        print('Evaluating agent')
+
 
     def save_model(self, filename='last_trained_model'):
         """
@@ -259,34 +225,3 @@ class TAMERAgent:
             self.H = model
         else:
             self.Q = model
-
-
-if __name__ == "__main__":
-
-    env = gym.make("MountainCar-v0")
-
-    # hyperparameters
-    discount_factor = 1
-    epsilon = 0  # vanilla Q learning actually works well with no random exploration
-    min_eps = 0
-    num_episodes = 1
-    tame = True  # set to false for vanilla Q learning
-
-    # set a timestep for training TAMER
-    # the more time per step, the easier for the human
-    # but the longer it takes to train (in real time)
-    # 0.2 seconds is fast but doable
-    tamer_training_timestep = 0.2  # seconds
-
-    agent = TAMERAgent(
-        env,
-        discount_factor,
-        epsilon,
-        min_eps,
-        num_episodes,
-        tame,
-        tamer_training_timestep,
-        load_last_model=True
-    )
-    # agent.train(save_model=True)
-    agent.play(2)
