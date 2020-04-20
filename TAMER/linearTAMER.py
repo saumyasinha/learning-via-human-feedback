@@ -117,11 +117,11 @@ class TAMERAgent:
         else:
             return np.random.randint(0, self.env.action_space.n)
 
-    def train(self, save_model=False):
+    def train(self, auto_save_model=False):
         """
         TAMER (or Q learning) training loop
         Args:
-            save_model: Optionally save Q or H model to file
+            auto_save_model: save Q or H model as 'last_trained_model.p'
         """
         if self.tame:
             # only init pygame display if we're actually training tamer
@@ -174,7 +174,7 @@ class TAMERAgent:
                 self.epsilon -= self.epsilon_step
 
         self.env.close()
-        if save_model:
+        if auto_save_model:
             self.save_model()
 
     def play(self, n_episdoes=1, render=False):

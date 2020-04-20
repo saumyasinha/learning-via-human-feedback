@@ -26,11 +26,10 @@ if __name__ == '__main__':
         num_episodes,
         tame,
         tamer_training_timestep,
+        # make sure this is False if you want to train a fresh model:
         load_last_model=True
     )
 
-    # agent.train(save_model=True)
-
+    agent.train(auto_save_model=True)
     # agent.play(1, render=True)
-
     agent.evaluate()
