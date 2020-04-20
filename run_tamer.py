@@ -2,7 +2,7 @@ import gym
 from TAMER.linearTAMER import TAMERAgent
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     env = gym.make("MountainCar-v0")
 
     # hyperparameters
@@ -26,11 +26,11 @@ if __name__ == '__main__':
         num_episodes,
         tame,
         tamer_training_timestep,
-        model_file_to_load=None  # pretrained model name here
+        model_file_to_load=None,  # pretrained model name here
     )
 
-    agent.train(model_file_to_save='autosave')
+    agent.train(model_file_to_save="autosave")
     # agent.load_model(filename='2_episodes_0.2s')
     # agent.play(n_episdoes=1, render=True)
     # agent.evaluate()
-    agent.save_reward_log('test_log')
+    agent.save_reward_log("test_log")

@@ -12,8 +12,8 @@ from sklearn.kernel_approximation import RBFSampler
 from sklearn import pipeline, preprocessing
 
 MOUNTAINCAR_ACTION_MAP = {0: "left", 1: "none", 2: "right"}
-MODELS_DIR = Path(__file__).parent.joinpath('models')
-LOGS_DIR = Path(__file__).parent.joinpath('logs')
+MODELS_DIR = Path(__file__).parent.joinpath("models")
+LOGS_DIR = Path(__file__).parent.joinpath("logs")
 
 
 class LinearFunctionApproximator:
@@ -81,7 +81,7 @@ class TAMERAgent:
         num_episodes,
         tame=True,
         ts_len=0.2,
-        model_file_to_load=None  # filename of pretrained model
+        model_file_to_load=None,  # filename of pretrained model
     ):
         self.tame = tame
         self.ts_len = ts_len  # length of timestep for training TAMER
@@ -89,7 +89,7 @@ class TAMERAgent:
 
         # init model
         if model_file_to_load is not None:
-            print(f'Loaded pretrained model: {model_file_to_load}')
+            print(f"Loaded pretrained model: {model_file_to_load}")
             self.load_model(filename=model_file_to_load)
         else:
             if tame:
@@ -107,7 +107,12 @@ class TAMERAgent:
         self.epsilon_step = (epsilon - min_eps) / num_episodes
 
         # Reward logging
-        self.reward_log = {'Episode': [], 'Ep start ts': [], 'Feedback ts': [], 'Reward': []}
+        self.reward_log = {
+            "Episode": [],
+            "Ep start ts": [],
+            "Feedback ts": [],
+            "Reward": [],
+        }
 
     def act(self, state):
         """ Epsilon-greedy Policy """
@@ -117,7 +122,7 @@ class TAMERAgent:
         else:
             return np.random.randint(0, self.env.action_space.n)
 
-    def train(self, model_file_to_save=None, input_protocol='wait'):
+    def train(self, model_file_to_save=None, input_protocol="wait"):
         """
         TAMER (or Q learning) training loop
         There are 2 ways to configure inputs for TAMER:
@@ -135,6 +140,7 @@ class TAMERAgent:
             # only init pygame display if we're actually training tamer
             matplotlib.use("Agg")  # stops python crashing
             from .interface import Interface
+
             disp = Interface(action_map=MOUNTAINCAR_ACTION_MAP)
 
         for i in range(self.num_episodes):
@@ -155,27 +161,31 @@ class TAMERAgent:
                 next_state, reward, done, info = self.env.step(action)
 
                 if self.tame:
-                    if input_protocol == 'wait':
+                    if input_protocol == "wait":
                         time.sleep(self.ts_len)
                         human_reward = disp.get_scalar_feedback()
                         if human_reward != 0:
                             # this log could lag up to ts_len seconds
-                            self.reward_log['Episode'].append(i + 1)
-                            self.reward_log['Ep start ts'].append(ep_start_time)
-                            self.reward_log['Feedback ts'].append(pd.datetime.now().time())
-                            self.reward_log['Reward'].append(human_reward)
+                            self.reward_log["Episode"].append(i + 1)
+                            self.reward_log["Ep start ts"].append(ep_start_time)
+                            self.reward_log["Feedback ts"].append(
+                                pd.datetime.now().time()
+                            )
+                            self.reward_log["Reward"].append(human_reward)
                             self.H.update(state, action, human_reward)
-                    elif input_protocol == 'loop':
+                    elif input_protocol == "loop":
                         now = time.time()
                         while time.time() < now + self.ts_len:
                             time.sleep(0.01)  # save the CPU
                             human_reward = disp.get_scalar_feedback()
                             if human_reward != 0:
                                 # this log should be accurate
-                                self.reward_log['Episode'].append(i + 1)
-                                self.reward_log['Ep start ts'].append(ep_start_time)
-                                self.reward_log['Feedback ts'].append(pd.datetime.now().time())
-                                self.reward_log['Reward'].append(human_reward)
+                                self.reward_log["Episode"].append(i + 1)
+                                self.reward_log["Ep start ts"].append(ep_start_time)
+                                self.reward_log["Feedback ts"].append(
+                                    pd.datetime.now().time()
+                                )
+                                self.reward_log["Reward"].append(human_reward)
                                 self.H.update(state, action, human_reward)
                                 break
 
@@ -228,17 +238,19 @@ class TAMERAgent:
                     self.env.render()
                 state = next_state
             ep_rewards.append(tot_reward)
-            print(f'Episode: {i + 1} Reward: {tot_reward}')
+            print(f"Episode: {i + 1} Reward: {tot_reward}")
         self.env.close()
 
         return ep_rewards
 
     def evaluate(self, n_episdoes=100):
-        print('Evaluating agent')
+        print("Evaluating agent")
         rewards = self.play(n_episdoes=n_episdoes)
         avg_reward = np.mean(rewards)
-        print(f'Average total episode reward over {n_episdoes} '
-              f'episodes: {avg_reward:.2f}')
+        print(
+            f"Average total episode reward over {n_episdoes} "
+            f"episodes: {avg_reward:.2f}"
+        )
         return avg_reward
 
     def save_model(self, filename):
@@ -248,8 +260,8 @@ class TAMERAgent:
             filename: name of pickled file
         """
         model = self.H if self.tame else self.Q
-        filename = filename + '.p' if not filename.endswith('.p') else filename
-        with open(MODELS_DIR.joinpath(filename), 'wb') as f:
+        filename = filename + ".p" if not filename.endswith(".p") else filename
+        with open(MODELS_DIR.joinpath(filename), "wb") as f:
             pickle.dump(model, f)
 
     def load_model(self, filename):
@@ -258,8 +270,8 @@ class TAMERAgent:
         Args:
             filename: name of pickled file
         """
-        filename = filename + '.p' if not filename.endswith('.p') else filename
-        with open(MODELS_DIR.joinpath(filename), 'rb') as f:
+        filename = filename + ".p" if not filename.endswith(".p") else filename
+        with open(MODELS_DIR.joinpath(filename), "rb") as f:
             model = pickle.load(f)
         if self.tame:
             self.H = model
@@ -268,4 +280,4 @@ class TAMERAgent:
 
     def save_reward_log(self, filename):
         df = pd.DataFrame(self.reward_log)
-        df.to_csv(LOGS_DIR.joinpath(filename + '.csv'))
+        df.to_csv(LOGS_DIR.joinpath(filename + ".csv"))

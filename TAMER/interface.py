@@ -4,6 +4,7 @@ import pygame
 
 class Interface:
     """ Pygame interface for training TAMER """
+
     def __init__(self, action_map):
         self.action_map = action_map
         pygame.init()
