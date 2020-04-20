@@ -3,6 +3,7 @@ from sys import stdout
 from pathlib import Path
 import pickle
 import time
+import datetime as dt
 import numpy as np
 import matplotlib
 import matplotlib.pyplot as plt
@@ -122,7 +123,7 @@ class TAMERAgent:
         else:
             return np.random.randint(0, self.env.action_space.n)
 
-    def train(self, model_file_to_save=None, input_protocol="wait"):
+    def train(self, model_file_to_save=None, input_protocol="loop"):
         """
         TAMER (or Q learning) training loop
         There are 2 ways to configure inputs for TAMER:
@@ -147,7 +148,7 @@ class TAMERAgent:
             print(f"Episode: {i + 1}  Timestep:", end="")
             tot_reward = 0
             state = self.env.reset()
-            ep_start_time = pd.datetime.now().time()
+            ep_start_time = dt.datetime.now().time()
             for ts in count():
                 print(f" {ts}", end="")
                 self.env.render()  # render env
@@ -169,7 +170,7 @@ class TAMERAgent:
                             self.reward_log["Episode"].append(i + 1)
                             self.reward_log["Ep start ts"].append(ep_start_time)
                             self.reward_log["Feedback ts"].append(
-                                pd.datetime.now().time()
+                                dt.datetime.now().time()
                             )
                             self.reward_log["Reward"].append(human_reward)
                             self.H.update(state, action, human_reward)
@@ -183,7 +184,7 @@ class TAMERAgent:
                                 self.reward_log["Episode"].append(i + 1)
                                 self.reward_log["Ep start ts"].append(ep_start_time)
                                 self.reward_log["Feedback ts"].append(
-                                    pd.datetime.now().time()
+                                    dt.datetime.now().time()
                                 )
                                 self.reward_log["Reward"].append(human_reward)
                                 self.H.update(state, action, human_reward)

@@ -26,6 +26,8 @@ class Interface:
         for event in pygame.event.get():
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_w:
+                    import ipdb
+                    ipdb.set_trace()
                     self.screen.fill((0, 255, 0))
                     reward = 1
                     break
@@ -34,7 +36,6 @@ class Interface:
                     reward = -1
                     break
         pygame.display.flip()
-        # print(reward)
         return reward
 
     def show_action(self, action):
