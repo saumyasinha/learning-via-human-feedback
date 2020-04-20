@@ -192,7 +192,7 @@ class DeepNeuralDecisionForest(nn.Module):
             )
             mu_e.append(mu)
 
-        # from the scond layer to the last layer, we make the decison nodes
+        # from the second layer to the last layer, we make the decison nodes
         for d in range(1, self._ndepth + 1):
             indices = torch.arange(2 ** d, 2 ** (d + 1)) - 1
             tile_indices = (
@@ -345,5 +345,5 @@ def test(epoch, model, model_name):
 for epoch in range(1, args.epochs + 1):
     train(epoch, simple_model, "Simple Model")
     test(epoch, simple_model, "Simple Model")
-    train(epoch, model, "DeepRF")
-    test(epoch, model, "DeepRF")
+    # train(epoch, model, "DeepRF")
+    # test(epoch, model, "DeepRF")

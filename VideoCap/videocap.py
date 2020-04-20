@@ -15,37 +15,27 @@ def capture_webcam(output_dir):
     # Output
     fourcc = cv2.VideoWriter_fourcc(*"mp4v")
 
-    frame_width = int(video_capture.get(3)) // 2
-    frame_height = int(video_capture.get(4)) // 2
+    # Need to scale to this height and width to match Affectiva input
+    target_width = 240
+    target_height = 320
+
+    frame_width = int(video_capture.get(3))
+    frame_height = int(video_capture.get(4))
+
+    print(f"frame (width, height): ({frame_width}, {frame_height})")
 
     video_fps = 14
 
     out = cv2.VideoWriter()
     out.open(
-        output_dir, fourcc, video_fps, (frame_width, frame_height), True,
+        output_dir, fourcc, video_fps, (target_width, target_height), True,
     )
-
-    # Initialize variables
-    face_locations = []
 
     try:
         while True:
             # Grab a single frame of video
             ret, frame = video_capture.read()
-            frame = cv2.resize(frame, (frame_width, frame_height))
-
-            # Convert the image from BGR color (which OpenCV uses) to RGB color (which face_recognition uses)
-            rgb_frame = frame[:, :, ::-1]
-
-            # Find all the faces in the current frame of video
-            face_locations = face_recognition.face_locations(rgb_frame)
-
-            # Display the results
-            for top, right, bottom, left in face_locations:
-                # Draw a box around the face
-                cv2.rectangle(frame, (left, top), (right, bottom), (0, 0, 255), 2)
-                # font = cv2.FONT_HERSHEY_DUPLEX
-                # cv2.putText(frame, "Face", (top + 6, right - 6), font, 0.5, (0, 0, 255), 1)
+            frame = cv2.resize(frame, (target_width, target_height))
 
             # Display the resulting image
             cv2.imshow("Video", frame)
@@ -53,7 +43,7 @@ def capture_webcam(output_dir):
             # Record
             out.write(frame)
 
-            # Hit 'q' on the keyboard to quit!
+            # Hit 'q' on the keyboard to quit
             if cv2.waitKey(1) & 0xFF == ord("q"):
                 break
     finally:
