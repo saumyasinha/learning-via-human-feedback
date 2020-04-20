@@ -13,6 +13,7 @@ from sklearn import pipeline, preprocessing
 
 MOUNTAINCAR_ACTION_MAP = {0: "left", 1: "none", 2: "right"}
 MODELS_DIR = Path(__file__).parent.joinpath('models')
+LOGS_DIR = Path(__file__).parent.joinpath('logs')
 
 
 class LinearFunctionApproximator:
@@ -106,7 +107,7 @@ class TAMERAgent:
         self.epsilon_step = (epsilon - min_eps) / num_episodes
 
         # Reward logging
-        self.reward_log = pd.DataFrame(columns=['Episode', 'Ep start ts','Feedback ts', 'Reward'])
+        self.reward_log = {'Episode': [], 'Ep start ts': [], 'Feedback ts': [], 'Reward': []}
 
     def act(self, state):
         """ Epsilon-greedy Policy """
@@ -139,9 +140,8 @@ class TAMERAgent:
         for i in range(self.num_episodes):
             print(f"Episode: {i + 1}  Timestep:", end="")
             tot_reward = 0
-            ep_start_time = pd.datetime.now().time()
             state = self.env.reset()
-
+            ep_start_time = pd.datetime.now().time()
             for ts in count():
                 print(f" {ts}", end="")
                 self.env.render()  # render env
@@ -159,15 +159,26 @@ class TAMERAgent:
                         time.sleep(self.ts_len)
                         human_reward = disp.get_scalar_feedback()
                         if human_reward != 0:
+                            # this log could lag up to ts_len seconds
+                            self.reward_log['Episode'].append(i + 1)
+                            self.reward_log['Ep start ts'].append(ep_start_time)
+                            self.reward_log['Feedback ts'].append(pd.datetime.now().time())
+                            self.reward_log['Reward'].append(human_reward)
                             self.H.update(state, action, human_reward)
                     elif input_protocol == 'loop':
                         now = time.time()
                         while time.time() < now + self.ts_len:
-                            time.sleep(0.01)
+                            time.sleep(0.01)  # save the CPU
                             human_reward = disp.get_scalar_feedback()
                             if human_reward != 0:
+                                # this log should be accurate
+                                self.reward_log['Episode'].append(i + 1)
+                                self.reward_log['Ep start ts'].append(ep_start_time)
+                                self.reward_log['Feedback ts'].append(pd.datetime.now().time())
+                                self.reward_log['Reward'].append(human_reward)
                                 self.H.update(state, action, human_reward)
                                 break
+
                 else:
                     if done and next_state[0] >= 0.5:
                         td_target = reward
@@ -254,3 +265,7 @@ class TAMERAgent:
             self.H = model
         else:
             self.Q = model
+
+    def save_reward_log(self, filename):
+        df = pd.DataFrame(self.reward_log)
+        df.to_csv(LOGS_DIR.joinpath(filename + '.csv'))
