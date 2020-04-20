@@ -9,7 +9,7 @@ if __name__ == "__main__":
     discount_factor = 1
     epsilon = 0  # vanilla Q learning actually works well with no random exploration
     min_eps = 0
-    num_episodes = 1
+    num_episodes = 10
     tame = True  # set to false for vanilla Q learning
 
     # set a timestep for training TAMER

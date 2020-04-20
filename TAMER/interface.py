@@ -11,11 +11,11 @@ class Interface:
         self.font = pygame.font.Font("freesansbold.ttf", 32)
 
         # set position of pygame window (so it doesn't overlap with gym)
-        os.environ["SDL_VIDEO_WINDOW_POS"] = "1000,100"
+        # os.environ["SDL_VIDEO_WINDOW_POS"] = "1000,100"
 
         self.screen = pygame.display.set_mode((200, 100))
-        self.screen.fill((0, 0, 0))
-        pygame.display.flip()
+        area = self.screen.fill((0, 0, 0))
+        pygame.display.update(area)
 
     def get_scalar_feedback(self):
         """
@@ -23,19 +23,20 @@ class Interface:
         Returns: scalar reward (1 for positive, -1 for negative)
         """
         reward = 0
+        area = None
         for event in pygame.event.get():
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_w:
                     import ipdb
                     ipdb.set_trace()
-                    self.screen.fill((0, 255, 0))
+                    area = self.screen.fill((0, 255, 0))
                     reward = 1
                     break
                 elif event.key == pygame.K_a:
-                    self.screen.fill((255, 0, 0))
+                    area = self.screen.fill((255, 0, 0))
                     reward = -1
                     break
-        pygame.display.flip()
+        pygame.display.update(area)
         return reward
 
     def show_action(self, action):
@@ -44,10 +45,10 @@ class Interface:
         Args:
             action: numerical action (for MountainCar environment only currently)
         """
-        self.screen.fill((0, 0, 0))
-        pygame.display.flip()
+        area = self.screen.fill((0, 0, 0))
+        pygame.display.update(area)
         text = self.font.render(self.action_map[action], True, (255, 255, 255))
         text_rect = text.get_rect()
         text_rect.center = (100, 50)
-        self.screen.blit(text, text_rect)
-        pygame.display.flip()
+        area = self.screen.blit(text, text_rect)
+        pygame.display.update(area)
