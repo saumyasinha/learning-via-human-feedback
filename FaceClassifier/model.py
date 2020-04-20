@@ -62,15 +62,15 @@ def custom_model(input_shape, num_classes, final_activation_fn="softmax"):
   x = Flatten()(x)
 
   # Dense layers
-  x = Dense(256)(x)
+  x = Dense(512)(x)
   x = BatchNorm()(x)
   x = Activation("relu")(x)
   x = Dropout(0.4)(x)
 
-  x = Dense(256)(x)
-  x = BatchNorm()(x)
-  x = Activation("relu")(x)
-  x = Dropout(0.4)(x)
+  # x = Dense(256)(x)
+  # x = BatchNorm()(x)
+  # x = Activation("relu")(x)
+  # x = Dropout(0.4)(x)
 
   x = Dense(num_classes)(x)
   x = Activation(final_activation_fn)(x)
