@@ -1,22 +1,19 @@
 import numpy as np
 import cv2
 import os
-from sklearn.model_selection import train_test_split
-from utils import ImageGenerator
-from keras.optimizers import Adam
-from keras.callbacks import ModelCheckpoint, ReduceLROnPlateau, EarlyStopping
 import argparse
 import albumentations
-from keras.regularizers import l2
-from keras.models import Sequential, Model
-from keras.applications import Xception, InceptionV3, VGG16
-from keras.layers import Dense, Flatten, Dropout, GlobalAveragePooling2D, Input
-from losses import focal_loss
+from utils.losses import focal_loss
 import pandas as pd
-from model import custom_model, VGG16_model
+from model import custom_model
+from sklearn.model_selection import train_test_split
+from utils.utils import ImageGenerator
+from keras.optimizers import Adam
+from keras.callbacks import ModelCheckpoint, ReduceLROnPlateau
+from keras.regularizers import l2
+from keras.models import Model
 
-
-def prepare_data(csv_dir,dropThresh=100):
+def prepareData(csv_dir,dropThresh=100):
   list_dfs = []
   dropCols = []
   for i in os.listdir(csv_dir):
@@ -35,8 +32,11 @@ def prepare_data(csv_dir,dropThresh=100):
   return df
 
 def train(args):
-  df = prepare_data(args.csv_dir)
+  df = prepareData(args.csv_dir)
   print(df)
+  # save to file
+  df.to_csv('master.csv',index=False)
+  # path column is not part of the classes
   num_classes = len(df.columns[1:])
   # split data into training set and validation set
   X_train, X_val = train_test_split(list(df.iloc[:,0]), shuffle=True, test_size=args.test_size)
@@ -81,6 +81,12 @@ def train(args):
   # build the model
   model = custom_model(input_shape=(args.input_height,args.input_width,args.input_channels),
                        num_classes=num_classes, final_activation_fn='sigmoid')
+  # add regularization
+  regularizer = l2(0.01)
+  for layer in model.layers:
+    for attr in ['kernel_regularizer']:
+      if hasattr(layer, attr):
+        setattr(layer, attr, regularizer)
   # baseModel = VGG16(weights="imagenet", include_top=False,
   #                   input_tensor=Input(shape=(args.input_height,args.input_width,args.input_channels)))
   # construct the head of the model that will be placed on top of the
@@ -93,10 +99,10 @@ def train(args):
   # model = Model(inputs=baseModel.input, outputs=headModel)
   print(model.summary())
   adam = Adam(learning_rate=args.lr, clipnorm=1.0, clipvalue=0.5)
-  model.compile(optimizer=adam, loss='binary_crossentropy', metrics=["accuracy"])
+  model.compile(optimizer=adam, loss='binary_crossentropy', metrics=['accuracy'])
 
   checkpoint = ModelCheckpoint(os.path.join(args.model_dir,args.model_name), verbose=1, save_best_only=True)
-  learn_rate = ReduceLROnPlateau(monitor="val_loss", factor=0.8, patience=10, verbose=1)
+  learn_rate = ReduceLROnPlateau(monitor="val_loss", factor=0.8, patience=15, verbose=1)
   callback_list = [checkpoint, learn_rate]
   history = model.fit_generator(train_gen, validation_data=valid_gen, epochs=args.epochs, verbose=1, callbacks=callback_list)
   return history

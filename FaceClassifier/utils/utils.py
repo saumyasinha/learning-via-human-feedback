@@ -58,7 +58,7 @@ class ImageGenerator(Sequence):
       img = self.resize_img(img,resize_dims=(self.input_shape[1],self.input_shape[0]))
       # if self.num_channels<3:
       # img = self.grayscale(img)
-      img = self.standard_normalize(img)
+      img = self.normalize_img(img)
       # replace any NaNs by 1
       img = np.nan_to_num(img,nan=np.float64(1.))
       if self.num_channels<3:
