@@ -9,7 +9,7 @@ if __name__ == '__main__':
     discount_factor = 1
     epsilon = 0  # vanilla Q learning actually works well with no random exploration
     min_eps = 0
-    num_episodes = 1
+    num_episodes = 2
     tame = True  # set to false for vanilla Q learning
 
     # set a timestep for training TAMER
@@ -26,10 +26,11 @@ if __name__ == '__main__':
         num_episodes,
         tame,
         tamer_training_timestep,
-        # make sure this is False if you want to train a fresh model:
-        load_last_model=True
+        model_file_to_load=None  # pretrained model name here
     )
 
-    agent.train(auto_save_model=True)
-    # agent.play(1, render=True)
-    agent.evaluate()
+    # agent.train(auto_save_model=False)
+    # agent.save_model(filename='2_episodes_0.2s')
+    agent.load_model(filename='2_episodes_0.2s')
+    agent.play(n_episdoes=1, render=True)
+    # agent.evaluate()

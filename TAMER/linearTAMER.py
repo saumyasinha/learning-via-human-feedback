@@ -81,16 +81,16 @@ class TAMERAgent:
         num_episodes,
         tame=True,
         ts_len=0.2,
-        load_last_model=False  # if True, loads last trained model
+        model_file_to_load=None  # filename of pretrained model
     ):
         self.tame = tame
         self.ts_len = ts_len  # length of timestep for training TAMER
         self.env = env
 
         # init model
-        if load_last_model:
-            print('Last model loaded')
-            self.load_model()
+        if model_file_to_load is not None:
+            print(f'Loaded pretrained model: {model_file_to_load}')
+            self.load_model(filename=model_file_to_load)
         else:
             if tame:
                 self.H = LinearFunctionApproximator(env)  # init H function
@@ -200,7 +200,7 @@ class TAMERAgent:
                     self.env.render()
                 state = next_state
             ep_rewards.append(tot_reward)
-            print(f'Episode: {i} Reward: {tot_reward}')
+            print(f'Episode: {i + 1} Reward: {tot_reward}')
         self.env.close()
 
         return ep_rewards
@@ -213,23 +213,25 @@ class TAMERAgent:
               f'episodes: {avg_reward:.2f}')
         return avg_reward
 
-    def save_model(self, filename='last_trained_model'):
+    def save_model(self, filename):
         """
         Save H or Q model to models dir
         Args:
-            filename: name of pickled file (minus .p extension)
+            filename: name of pickled file
         """
         model = self.H if self.tame else self.Q
-        with open(f'{MODELS_DIR.joinpath(filename)}.p', 'wb') as f:
+        filename = filename + '.p' if not filename.endswith('.p') else filename
+        with open(MODELS_DIR.joinpath(filename), 'wb') as f:
             pickle.dump(model, f)
 
-    def load_model(self, filename='last_trained_model'):
+    def load_model(self, filename):
         """
         Load H or Q model from models dir
         Args:
-            filename: name of pickled file (minus .p extension)
+            filename: name of pickled file
         """
-        with open(f'{MODELS_DIR.joinpath(filename)}.p', 'rb') as f:
+        filename = filename + '.p' if not filename.endswith('.p') else filename
+        with open(MODELS_DIR.joinpath(filename), 'rb') as f:
             model = pickle.load(f)
         if self.tame:
             self.H = model
