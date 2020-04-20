@@ -19,9 +19,6 @@ class Interface:
     def get_scalar_feedback(self):
         """
         Get human input. 'W' key for positive, 'A' key for negative.
-        Args:
-            screen: pygame screen object
-
         Returns: scalar reward (1 for positive, -1 for negative)
         """
         reward = 0
@@ -43,7 +40,6 @@ class Interface:
         """
         Show agent's action on pygame screen
         Args:
-            screen: pygame screen object
             action: numerical action (for MountainCar environment only currently)
         """
         self.screen.fill((0, 0, 0))

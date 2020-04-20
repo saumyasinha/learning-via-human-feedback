@@ -1,13 +1,12 @@
-import os
 from itertools import count
 from sys import stdout
 from pathlib import Path
 import pickle
 import time
 import numpy as np
-import gym
 import matplotlib
 import matplotlib.pyplot as plt
+import pandas as pd
 from sklearn.linear_model import SGDRegressor
 from sklearn.kernel_approximation import RBFSampler
 from sklearn import pipeline, preprocessing
@@ -106,8 +105,8 @@ class TAMERAgent:
         # Calculate episodic reduction in epsilon
         self.epsilon_step = (epsilon - min_eps) / num_episodes
 
-        # Rewards
-        self.reward_list = []
+        # Reward logging
+        self.reward_log = pd.DataFrame(columns=['Episode', 'Ep start ts','Feedback ts', 'Reward'])
 
     def act(self, state):
         """ Epsilon-greedy Policy """
@@ -117,11 +116,19 @@ class TAMERAgent:
         else:
             return np.random.randint(0, self.env.action_space.n)
 
-    def train(self, auto_save_model=False):
+    def train(self, model_file_to_save=None, input_protocol='wait'):
         """
         TAMER (or Q learning) training loop
+        There are 2 ways to configure inputs for TAMER:
+            'wait': python sleeps for ts_len then grabs the first input
+                    from the pygame queue. This seems to train better agents
+                    but feels laggy and sometimes inputs don't register
+            'loop': python loops for ts_len listening for the first input. This
+                    feels much smoother to play but seems to train worse.
+        Will continue testing and pick one eventually.
         Args:
-            auto_save_model: save Q or H model as 'last_trained_model.p'
+            model_file_to_save: save Q or H model to this filename
+            input_protocol: 'wait' or 'loop'
         """
         if self.tame:
             # only init pygame display if we're actually training tamer
@@ -132,6 +139,7 @@ class TAMERAgent:
         for i in range(self.num_episodes):
             print(f"Episode: {i + 1}  Timestep:", end="")
             tot_reward = 0
+            ep_start_time = pd.datetime.now().time()
             state = self.env.reset()
 
             for ts in count():
@@ -147,10 +155,19 @@ class TAMERAgent:
                 next_state, reward, done, info = self.env.step(action)
 
                 if self.tame:
-                    time.sleep(self.ts_len)
-                    human_reward = disp.get_scalar_feedback()
-                    if human_reward != 0:
-                        self.H.update(state, action, human_reward)
+                    if input_protocol == 'wait':
+                        time.sleep(self.ts_len)
+                        human_reward = disp.get_scalar_feedback()
+                        if human_reward != 0:
+                            self.H.update(state, action, human_reward)
+                    elif input_protocol == 'loop':
+                        now = time.time()
+                        while time.time() < now + self.ts_len:
+                            time.sleep(0.01)
+                            human_reward = disp.get_scalar_feedback()
+                            if human_reward != 0:
+                                self.H.update(state, action, human_reward)
+                                break
                 else:
                     if done and next_state[0] >= 0.5:
                         td_target = reward
@@ -174,8 +191,8 @@ class TAMERAgent:
                 self.epsilon -= self.epsilon_step
 
         self.env.close()
-        if auto_save_model:
-            self.save_model()
+        if model_file_to_save is not None:
+            self.save_model(filename=model_file_to_save)
 
     def play(self, n_episdoes=1, render=False):
         """
