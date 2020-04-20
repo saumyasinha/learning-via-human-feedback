@@ -31,6 +31,6 @@ if __name__ == "__main__":
 
     agent.train(model_file_to_save="autosave")
     # agent.load_model(filename='2_episodes_0.2s')
-    # agent.play(n_episdoes=1, render=True)
+    # agent.play(n_episodes=1, render=True)
     # agent.evaluate()
     agent.save_reward_log("test_log")
