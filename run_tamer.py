@@ -28,5 +28,9 @@ if __name__ == '__main__':
         tamer_training_timestep,
         load_last_model=True
     )
+
     # agent.train(save_model=True)
-    agent.play(1)
+
+    # agent.play(1, render=True)
+
+    agent.evaluate()

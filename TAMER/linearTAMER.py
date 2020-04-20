@@ -183,8 +183,11 @@ class TAMERAgent:
         Args:
             n_episdoes: number of episodes
             render: optionally render episodes
+
+        Returns: list of cumulative episode rewards
         """
         self.epsilon = 0
+        ep_rewards = []
         for i in range(n_episdoes):
             state = self.env.reset()
             done = False
@@ -196,12 +199,19 @@ class TAMERAgent:
                 if render:
                     self.env.render()
                 state = next_state
+            ep_rewards.append(tot_reward)
             print(f'Episode: {i} Reward: {tot_reward}')
         self.env.close()
 
+        return ep_rewards
+
     def evaluate(self, n_episdoes=100):
         print('Evaluating agent')
-
+        rewards = self.play(n_episdoes=n_episdoes)
+        avg_reward = np.mean(rewards)
+        print(f'Average total episode reward over {n_episdoes} '
+              f'episodes: {avg_reward:.2f}')
+        return avg_reward
 
     def save_model(self, filename='last_trained_model'):
         """
