@@ -1,15 +1,16 @@
 import datetime as dt
+import os
 import pickle
 import time
 import uuid
 from itertools import count
 from pathlib import Path
 from sys import stdout
+from csv import DictWriter
 
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
-import pandas as pd
 from sklearn import pipeline, preprocessing
 from sklearn.kernel_approximation import RBFSampler
 from sklearn.linear_model import SGDRegressor
@@ -84,12 +85,14 @@ class TAMERAgent:
         num_episodes,
         tame=True,
         ts_len=0.2,
+        output_dir=LOGS_DIR,
         model_file_to_load=None,  # filename of pretrained model
     ):
         self.tame = tame
         self.ts_len = ts_len  # length of timestep for training TAMER
         self.env = env
         self.uuid = uuid.uuid4()
+        self.output_dir = output_dir
 
         # init model
         if model_file_to_load is not None:
@@ -111,12 +114,13 @@ class TAMERAgent:
         self.epsilon_step = (epsilon - min_eps) / num_episodes
 
         # Reward logging
-        self.reward_log = {
-            "Episode": [],
-            "Ep start ts": [],
-            "Feedback ts": [],
-            "Reward": [],
-        }
+        self.reward_log_columns = [
+            "Episode",
+            "Ep start ts",
+            "Feedback ts",
+            "Reward",
+        ]
+        self.reward_log_path = os.path.join(self.output_dir, f"{self.uuid}.csv")
 
     def act(self, state):
         """ Epsilon-greedy Policy """
@@ -132,74 +136,86 @@ class TAMERAgent:
         tot_reward = 0
         state = self.env.reset()
         ep_start_time = dt.datetime.now().time()
-        for ts in count():
-            print(f" {ts}", end="")
-            self.env.render()
+        with open(self.reward_log_path, "a+", newline="") as write_obj:
+            dict_writer = DictWriter(write_obj, fieldnames=self.reward_log_columns)
+            dict_writer.writeheader()
+            for ts in count():
+                print(f" {ts}", end="")
+                self.env.render()
 
-            # Determine next action
-            action = self.act(state)
-            if self.tame:
-                disp.show_action(action)
+                # Determine next action
+                action = self.act(state)
+                if self.tame:
+                    disp.show_action(action)
 
-            # Get next state and reward
-            next_state, reward, done, info = self.env.step(action)
+                # Get next state and reward
+                next_state, reward, done, info = self.env.step(action)
 
-            if not self.tame:
-                if done and next_state[0] >= 0.5:
-                    td_target = reward
-                else:
-                    td_target = reward + self.discount_factor * np.max(
-                        self.Q.predict(next_state)
-                    )
-                self.Q.update(state, action, td_target)
-            else:
-                now = time.time()
-                while time.time() < now + self.ts_len:
-                    frame = None
-                    if rec is not None:
-                        frame = rec.get_frame()
-                        rec.show_frame(frame)
-                        rec.write_frame(frame)
-
-                    time.sleep(0.01)  # save the CPU
-
-                    human_reward = disp.get_scalar_feedback()
-                    feedback_ts = dt.datetime.now().time()
-                    if human_reward != 0:
-                        if rec is not None:
-                            rec.write_frame_image(frame, str(feedback_ts))
-                        self.reward_log["Episode"].append(episode_index + 1)
-                        self.reward_log["Ep start ts"].append(ep_start_time)
-                        self.reward_log["Feedback ts"].append(feedback_ts)
-                        self.reward_log["Reward"].append(human_reward)
-                        self.H.update(state, action, human_reward)
-                        break
+                if not self.tame:
+                    if done and next_state[0] >= 0.5:
+                        td_target = reward
                     else:
-                        # Sometimes save a frame without human feedback
-                        # TODO: choose a better or dynamic probability
-                        prob_save = 0.005
-                        if rng.random() < prob_save:
-                            # TODO: should we add to reward_log here?
+                        td_target = reward + self.discount_factor * np.max(
+                            self.Q.predict(next_state)
+                        )
+                    self.Q.update(state, action, td_target)
+                else:
+                    now = time.time()
+                    while time.time() < now + self.ts_len:
+                        frame = None
+                        if rec is not None:
+                            frame = rec.get_frame()
+                            rec.show_frame(frame)
+                            rec.write_frame(frame)
+
+                        time.sleep(0.01)  # save the CPU
+
+                        human_reward = disp.get_scalar_feedback()
+                        feedback_ts = dt.datetime.now().time()
+                        if human_reward != 0:
                             if rec is not None:
                                 rec.write_frame_image(frame, str(feedback_ts))
+                            dict_writer.writerow(
+                                {
+                                    "Episode": episode_index + 1,
+                                    "Ep start ts": ep_start_time,
+                                    "Feedback ts": feedback_ts,
+                                    "Reward": human_reward,
+                                }
+                            )
+                            self.H.update(state, action, human_reward)
                             break
+                        else:
+                            # Sometimes save a frame without human feedback
+                            # TODO: choose a better or dynamic probability
+                            prob_save = 0.005
+                            if rng.random() < prob_save:
+                                dict_writer.writerow(
+                                    {
+                                        "Episode": episode_index + 1,
+                                        "Ep start ts": ep_start_time,
+                                        "Feedback ts": feedback_ts,
+                                        "Reward": 0,
+                                    }
+                                )
+                                if rec is not None:
+                                    rec.write_frame_image(frame, str(feedback_ts))
+                                break
 
-            tot_reward += reward
+                tot_reward += reward
 
-            if done:
-                print(f"  Reward: {tot_reward}")
-                break
+                if done:
+                    print(f"  Reward: {tot_reward}")
+                    break
 
-            stdout.write("\b" * (len(str(ts)) + 1))
-            state = next_state
+                stdout.write("\b" * (len(str(ts)) + 1))
+                state = next_state
 
         # Decay epsilon
         if self.epsilon > self.min_eps:
             self.epsilon -= self.epsilon_step
 
-    async def train(
-        self, model_file_to_save=None, capture_video=False, output_dir=None
-    ):
+    async def train(self, model_file_to_save=None, capture_video=False):
         """
         TAMER (or Q learning) training loop
         Args:
@@ -220,17 +236,18 @@ class TAMERAgent:
             if capture_video:
                 from VideoCap.videocap import RecordFromWebCam
 
-                with RecordFromWebCam(output_dir) as rec:
+                with RecordFromWebCam(self.uuid, self.output_dir) as rec:
                     for i in range(self.num_episodes):
                         self._train_episode(i, disp, rec)
             else:
                 for i in range(self.num_episodes):
                     self._train_episode(i, disp)
         finally:
+            print()
+            print("Cleaning up linearTAMER")
             self.env.close()
             if model_file_to_save is not None:
                 self.save_model(filename=model_file_to_save)
-            self.save_reward_log()
 
     def play(self, n_episodes=1, render=False):
         """
@@ -293,7 +310,3 @@ class TAMERAgent:
             self.H = model
         else:
             self.Q = model
-
-    def save_reward_log(self):
-        df = pd.DataFrame(self.reward_log)
-        df.to_csv(LOGS_DIR.joinpath(f"{self.uuid}.csv"))

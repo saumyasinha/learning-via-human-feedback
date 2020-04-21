@@ -42,7 +42,8 @@ class RecordFromWebCam:
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        print("Cleaning up...")
+        print()
+        print("Cleaning up video capture")
         self.video_capture.release()
         self.out.release()
         cv2.destroyAllWindows()
