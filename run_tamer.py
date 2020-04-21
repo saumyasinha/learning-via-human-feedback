@@ -4,7 +4,7 @@ import os
 
 import gym
 
-from TAMER.linearTAMER import TAMERAgent
+from TAMER.linearTAMER import TAMERAgent, LOGS_DIR
 
 
 async def main(args):
@@ -26,24 +26,21 @@ async def main(args):
         num_episodes,
         tame,
         args.tamer_training_timestep,
+        output_dir=args.output,
         model_file_to_load=None,  # pretrained model name here
     )
 
     # TODO: move capture_video to args
 
-    await agent.train(
-        model_file_to_save="autosave", capture_video=True, output_dir=args.output
-    )
+    await agent.train(model_file_to_save="autosave", capture_video=True)
     # agent.load_model(filename='2_episodes_0.2s')
     # agent.play(n_episodes=1, render=True)
     # agent.evaluate()
-    agent.save_reward_log("test_log")
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    default_output = os.getcwd()
-    parser.add_argument("-o", "--output", type=str, default=default_output)
+    parser.add_argument("-o", "--output", type=str, default=LOGS_DIR)
     # set a timestep for training TAMER
     # the more time per step, the easier for the human
     # but the longer it takes to train (in real time)
