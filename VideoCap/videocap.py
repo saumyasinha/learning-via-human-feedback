@@ -3,16 +3,22 @@
 # https://github.com/chandravenky/Computer-Vision---Object-Detection-in-Python/blob/master/macOS%20recording%20codes/Real%20time%20webcam%20face%20detection
 ###
 
-import os
-import cv2
-import face_recognition
 import argparse
 import asyncio
+import os
+import uuid
+
+import cv2
+import face_recognition
 
 
 class RecordFromWebCam:
     def __init__(self, output_dir):
+        self.uuid = uuid.uuid4()
         self.output_dir = output_dir
+        self.video_output = os.path.join(output_dir, f"{self.uuid}.avi")
+        self.frame_output = os.path.join(output_dir, str(self.uuid))
+        os.makedirs(self.frame_output, exist_ok=True)
 
     def __enter__(self):
         self.video_capture = cv2.VideoCapture(0)
@@ -32,7 +38,7 @@ class RecordFromWebCam:
 
         self.out = cv2.VideoWriter()
         self.out.open(
-            self.output_dir, fourcc, video_fps, (target_width, target_height), True,
+            self.video_output, fourcc, video_fps, (target_width, target_height), True,
         )
         return self
 
@@ -68,6 +74,10 @@ class RecordFromWebCam:
     def write_frame(self, frame):
         self.out.write(frame)
 
+    def write_frame_image(self, frame, timestamp):
+        path = os.path.join(self.frame_output, f"{timestamp}.png")
+        cv2.imwrite(path, frame)
+
     def run(self):
         while True:
             # Grab a single frame of video
@@ -91,7 +101,7 @@ async def main(args):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    default_output = os.path.join(os.getcwd(), "vidcap_output.avi")
+    default_output = os.getcwd()
     parser.add_argument("-o", "--output", type=str, default=default_output)
     args = parser.parse_args()
     asyncio.run(main(args))
