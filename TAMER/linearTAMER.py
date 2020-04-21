@@ -125,6 +125,7 @@ class TAMERAgent:
 
     def _train_episode(self, episode_index, disp, rec=None):
         print(f"Episode: {episode_index + 1}  Timestep:", end="")
+        rng = np.random.default_rng()
         tot_reward = 0
         state = self.env.reset()
         ep_start_time = dt.datetime.now().time()
@@ -140,27 +141,7 @@ class TAMERAgent:
             # Get next state and reward
             next_state, reward, done, info = self.env.step(action)
 
-            if self.tame:
-                now = time.time()
-                while time.time() < now + self.ts_len:
-                    frame = None
-                    if rec is not None:
-                        frame = rec.get_frame()
-                        rec.show_frame(frame)
-                    time.sleep(0.01)  # save the CPU
-                    human_reward = disp.get_scalar_feedback()
-                    if human_reward != 0:
-                        feedback_ts = dt.datetime.now().time()
-                        if rec is not None:
-                            print(frame.shape)
-                        self.reward_log["Episode"].append(episode_index + 1)
-                        self.reward_log["Ep start ts"].append(ep_start_time)
-                        self.reward_log["Feedback ts"].append(feedback_ts)
-                        self.reward_log["Reward"].append(human_reward)
-                        self.H.update(state, action, human_reward)
-                        break
-
-            else:
+            if not self.tame:
                 if done and next_state[0] >= 0.5:
                     td_target = reward
                 else:
@@ -168,6 +149,37 @@ class TAMERAgent:
                         self.Q.predict(next_state)
                     )
                 self.Q.update(state, action, td_target)
+            else:
+                now = time.time()
+                while time.time() < now + self.ts_len:
+                    frame = None
+                    if rec is not None:
+                        frame = rec.get_frame()
+                        rec.show_frame(frame)
+                        rec.write_frame(frame)
+
+                    time.sleep(0.01)  # save the CPU
+
+                    human_reward = disp.get_scalar_feedback()
+                    feedback_ts = dt.datetime.now().time()
+                    if human_reward != 0:
+                        if rec is not None:
+                            rec.write_frame_image(frame, str(feedback_ts))
+                        self.reward_log["Episode"].append(episode_index + 1)
+                        self.reward_log["Ep start ts"].append(ep_start_time)
+                        self.reward_log["Feedback ts"].append(feedback_ts)
+                        self.reward_log["Reward"].append(human_reward)
+                        self.H.update(state, action, human_reward)
+                        break
+                    else:
+                        # Sometimes save a frame without human feedback
+                        # TODO: choose a better or dynamic probability
+                        prob_save = 0.01
+                        if rng.random() < prob_save:
+                            # TODO: should we add to reward_log here?
+                            if rec is not None:
+                                rec.write_frame_image(frame, str(feedback_ts))
+                            break
 
             tot_reward += reward
 
