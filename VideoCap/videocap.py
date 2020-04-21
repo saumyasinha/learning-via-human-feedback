@@ -6,15 +6,14 @@
 import argparse
 import asyncio
 import os
-import uuid
 
 import cv2
 import face_recognition
 
 
 class RecordFromWebCam:
-    def __init__(self, output_dir):
-        self.uuid = uuid.uuid4()
+    def __init__(self, uuid, output_dir):
+        self.uuid = uuid
         self.output_dir = output_dir
         self.video_output = os.path.join(output_dir, f"{self.uuid}.avi")
         self.frame_output = os.path.join(output_dir, str(self.uuid))

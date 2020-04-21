@@ -37,7 +37,6 @@ async def main(args):
     # agent.load_model(filename='2_episodes_0.2s')
     # agent.play(n_episodes=1, render=True)
     # agent.evaluate()
-    agent.save_reward_log("test_log")
 
 
 if __name__ == "__main__":

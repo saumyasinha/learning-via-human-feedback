@@ -1,16 +1,18 @@
-from itertools import count
-from sys import stdout
-from pathlib import Path
+import datetime as dt
 import pickle
 import time
-import datetime as dt
-import numpy as np
+import uuid
+from itertools import count
+from pathlib import Path
+from sys import stdout
+
 import matplotlib
 import matplotlib.pyplot as plt
+import numpy as np
 import pandas as pd
-from sklearn.linear_model import SGDRegressor
-from sklearn.kernel_approximation import RBFSampler
 from sklearn import pipeline, preprocessing
+from sklearn.kernel_approximation import RBFSampler
+from sklearn.linear_model import SGDRegressor
 
 MOUNTAINCAR_ACTION_MAP = {0: "left", 1: "none", 2: "right"}
 MODELS_DIR = Path(__file__).parent.joinpath("models")
@@ -87,6 +89,7 @@ class TAMERAgent:
         self.tame = tame
         self.ts_len = ts_len  # length of timestep for training TAMER
         self.env = env
+        self.uuid = uuid.uuid4()
 
         # init model
         if model_file_to_load is not None:
@@ -213,19 +216,21 @@ class TAMERAgent:
 
             disp = Interface(action_map=MOUNTAINCAR_ACTION_MAP)
 
-        if capture_video:
-            from VideoCap.videocap import RecordFromWebCam
+        try:
+            if capture_video:
+                from VideoCap.videocap import RecordFromWebCam
 
-            with RecordFromWebCam(output_dir) as rec:
+                with RecordFromWebCam(output_dir) as rec:
+                    for i in range(self.num_episodes):
+                        self._train_episode(i, disp, rec)
+            else:
                 for i in range(self.num_episodes):
-                    self._train_episode(i, disp, rec)
-        else:
-            for i in range(self.num_episodes):
-                self._train_episode(i, disp)
-
-        self.env.close()
-        if model_file_to_save is not None:
-            self.save_model(filename=model_file_to_save)
+                    self._train_episode(i, disp)
+        finally:
+            self.env.close()
+            if model_file_to_save is not None:
+                self.save_model(filename=model_file_to_save)
+            self.save_reward_log()
 
     def play(self, n_episodes=1, render=False):
         """
@@ -289,6 +294,6 @@ class TAMERAgent:
         else:
             self.Q = model
 
-    def save_reward_log(self, filename):
+    def save_reward_log(self):
         df = pd.DataFrame(self.reward_log)
-        df.to_csv(LOGS_DIR.joinpath(filename + ".csv"))
+        df.to_csv(LOGS_DIR.joinpath(f"{self.uuid}.csv"))
