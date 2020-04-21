@@ -56,17 +56,28 @@ class RecordFromWebCam:
         frame = cv2.resize(frame, (target_width, target_height))
         return frame
 
+    def get_frame(self):
+        # Grab a single frame of video
+        ret, frame = self.video_capture.read()
+        frame = self.resize_frame(frame)
+        return frame
+
+    def show_frame(self, frame):
+        cv2.imshow("Video", frame)
+
+    def write_frame(self, frame):
+        self.out.write(frame)
+
     def run(self):
         while True:
             # Grab a single frame of video
-            ret, frame = self.video_capture.read()
-            frame = self.resize_frame(frame)
+            frame = self.get_frame()
 
             # Display the resulting image
-            cv2.imshow("Video", frame)
+            self.show_frame(frame)
 
             # Record
-            self.out.write(frame)
+            self.write_frame(frame)
 
             # Hit 'q' on the keyboard to quit
             if cv2.waitKey(1) & 0xFF == ord("q"):

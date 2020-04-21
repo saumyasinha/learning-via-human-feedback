@@ -123,7 +123,68 @@ class TAMERAgent:
         else:
             return np.random.randint(0, self.env.action_space.n)
 
-    def train(self, model_file_to_save=None, capture_video=False):
+    def _train_episode(self, episode_index, disp, rec=None):
+        print(f"Episode: {episode_index + 1}  Timestep:", end="")
+        tot_reward = 0
+        state = self.env.reset()
+        ep_start_time = dt.datetime.now().time()
+        for ts in count():
+            print(f" {ts}", end="")
+            self.env.render()
+
+            # Determine next action
+            action = self.act(state)
+            if self.tame:
+                disp.show_action(action)
+
+            # Get next state and reward
+            next_state, reward, done, info = self.env.step(action)
+
+            if self.tame:
+                now = time.time()
+                while time.time() < now + self.ts_len:
+                    frame = None
+                    if rec is not None:
+                        frame = rec.get_frame()
+                        rec.show_frame(frame)
+                    time.sleep(0.01)  # save the CPU
+                    human_reward = disp.get_scalar_feedback()
+                    if human_reward != 0:
+                        feedback_ts = dt.datetime.now().time()
+                        if rec is not None:
+                            print(frame.shape)
+                        self.reward_log["Episode"].append(episode_index + 1)
+                        self.reward_log["Ep start ts"].append(ep_start_time)
+                        self.reward_log["Feedback ts"].append(feedback_ts)
+                        self.reward_log["Reward"].append(human_reward)
+                        self.H.update(state, action, human_reward)
+                        break
+
+            else:
+                if done and next_state[0] >= 0.5:
+                    td_target = reward
+                else:
+                    td_target = reward + self.discount_factor * np.max(
+                        self.Q.predict(next_state)
+                    )
+                self.Q.update(state, action, td_target)
+
+            tot_reward += reward
+
+            if done:
+                print(f"  Reward: {tot_reward}")
+                break
+
+            stdout.write("\b" * (len(str(ts)) + 1))
+            state = next_state
+
+        # Decay epsilon
+        if self.epsilon > self.min_eps:
+            self.epsilon -= self.epsilon_step
+
+    async def train(
+        self, model_file_to_save=None, capture_video=False, output_dir=None
+    ):
         """
         TAMER (or Q learning) training loop
         Args:
@@ -132,6 +193,7 @@ class TAMERAgent:
         """
         # render first so that pygame display shows up on top
         self.env.render()
+        disp = None
         if self.tame:
             # only init pygame display if we're actually training tamer
             matplotlib.use("Agg")  # stops python crashing
@@ -140,62 +202,14 @@ class TAMERAgent:
             disp = Interface(action_map=MOUNTAINCAR_ACTION_MAP)
 
         if capture_video:
-            from VideoCap.videocap import capture_webcam
-            import ipdb; ipdb.set_trace()
+            from VideoCap.videocap import RecordFromWebCam
 
-        for i in range(self.num_episodes):
-            print(f"Episode: {i + 1}  Timestep:", end="")
-            tot_reward = 0
-            state = self.env.reset()
-            ep_start_time = dt.datetime.now().time()
-            for ts in count():
-                print(f" {ts}", end="")
-                self.env.render()
-
-                # Determine next action
-                action = self.act(state)
-                if self.tame:
-                    disp.show_action(action)
-
-                # Get next state and reward
-                next_state, reward, done, info = self.env.step(action)
-
-                if self.tame:
-                    now = time.time()
-                    while time.time() < now + self.ts_len:
-                        time.sleep(0.01)  # save the CPU
-                        human_reward = disp.get_scalar_feedback()
-                        if human_reward != 0:
-                            self.reward_log["Episode"].append(i + 1)
-                            self.reward_log["Ep start ts"].append(ep_start_time)
-                            self.reward_log["Feedback ts"].append(
-                                dt.datetime.now().time()
-                            )
-                            self.reward_log["Reward"].append(human_reward)
-                            self.H.update(state, action, human_reward)
-                            break
-
-                else:
-                    if done and next_state[0] >= 0.5:
-                        td_target = reward
-                    else:
-                        td_target = reward + self.discount_factor * np.max(
-                            self.Q.predict(next_state)
-                        )
-                    self.Q.update(state, action, td_target)
-
-                tot_reward += reward
-
-                if done:
-                    print(f"  Reward: {tot_reward}")
-                    break
-
-                stdout.write("\b" * (len(str(ts)) + 1))
-                state = next_state
-
-            # Decay epsilon
-            if self.epsilon > self.min_eps:
-                self.epsilon -= self.epsilon_step
+            with RecordFromWebCam(output_dir) as rec:
+                for i in range(self.num_episodes):
+                    self._train_episode(i, disp, rec)
+        else:
+            for i in range(self.num_episodes):
+                self._train_episode(i, disp)
 
         self.env.close()
         if model_file_to_save is not None:
