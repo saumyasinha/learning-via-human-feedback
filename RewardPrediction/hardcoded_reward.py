@@ -25,7 +25,8 @@ def au_to_reward_mapping(prob_mapping, threshold):
     if (prob_mapping['AU02'] + prob_mapping['AU04']+prob_mapping['AU05'] + prob_mapping['AU20'] + prob_mapping['AU26']) > threshold:
         return -1
 
-    return 0
+    else:
+        print("choose a lower threshold")
 
 
 
