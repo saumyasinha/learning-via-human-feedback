@@ -123,12 +123,12 @@ class TAMERAgent:
         else:
             return np.random.randint(0, self.env.action_space.n)
 
-    def train(self, model_file_to_save=None):
+    def train(self, model_file_to_save=None, capture_video=False):
         """
         TAMER (or Q learning) training loop
         Args:
             model_file_to_save: save Q or H model to this filename
-            input_protocol: 'wait' or 'loop'
+            capture_video: whether or not to capture webcam feed and save frames
         """
         # render first so that pygame display shows up on top
         self.env.render()
@@ -138,6 +138,10 @@ class TAMERAgent:
             from .interface import Interface
 
             disp = Interface(action_map=MOUNTAINCAR_ACTION_MAP)
+
+        if capture_video:
+            from VideoCap.videocap import capture_webcam
+            import ipdb; ipdb.set_trace()
 
         for i in range(self.num_episodes):
             print(f"Episode: {i + 1}  Timestep:", end="")

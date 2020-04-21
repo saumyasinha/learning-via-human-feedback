@@ -7,6 +7,8 @@ import os
 import cv2
 import face_recognition
 import argparse
+import asyncio
+
 
 
 def resize_frame(frame, frame_shape, target_shape):
@@ -68,13 +70,12 @@ def capture_webcam(output_dir):
         cv2.destroyAllWindows()
 
 
-def main(args):
+async def main(args):
     capture_webcam(args.output)
-
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     default_output = os.path.join(os.getcwd(), "vidcap_output.avi")
     parser.add_argument("-o", "--output", type=str, default=default_output)
     args = parser.parse_args()
-    main(args)
+    asyncio.run(main(args))
