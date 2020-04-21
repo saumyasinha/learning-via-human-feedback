@@ -2,7 +2,7 @@
 
 To use a trained model to predict the class probabilities for an image use this command:
 
-`python3 predict.py --model_path weights/some_model_name.h5 --image_path path_to_image.png --resize_dims 224 224`
+`python3 predict.py --model_path weights/some_model_name.h5 --image_path path_to_image.png`
 
 - The `predict.py` does all the pre-processing for you and will print and return a dictionary mapping the class names to their probabilities from the sigmoid layer.
 
