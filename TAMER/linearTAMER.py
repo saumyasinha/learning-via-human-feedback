@@ -174,7 +174,7 @@ class TAMERAgent:
                     else:
                         # Sometimes save a frame without human feedback
                         # TODO: choose a better or dynamic probability
-                        prob_save = 0.01
+                        prob_save = 0.005
                         if rng.random() < prob_save:
                             # TODO: should we add to reward_log here?
                             if rec is not None:
