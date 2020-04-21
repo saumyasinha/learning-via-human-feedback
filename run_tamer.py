@@ -42,7 +42,7 @@ async def main(args):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    default_output = os.path.join(os.getcwd(), "vidcap_output.avi")
+    default_output = os.getcwd()
     parser.add_argument("-o", "--output", type=str, default=default_output)
     # set a timestep for training TAMER
     # the more time per step, the easier for the human
