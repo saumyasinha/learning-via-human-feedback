@@ -10,68 +10,73 @@ import argparse
 import asyncio
 
 
+class RecordFromWebCam:
+    def __init__(self, output_dir):
+        self.output_dir = output_dir
 
-def resize_frame(frame, frame_shape, target_shape):
-    frame_remainder = tuple(t1 % t2 for t1, t2 in zip(frame_shape, target_shape))
-    crop_width = frame_remainder[0] // 2
-    crop_height = frame_remainder[1] // 2
-    height, width = frame_shape
-    target_height, target_width = target_shape
-    frame = frame[crop_height : height - crop_height, crop_width : width - crop_width]
-    frame = cv2.resize(frame, (target_width, target_height))
-    return frame
+    def __enter__(self):
+        self.video_capture = cv2.VideoCapture(0)
 
+        # Output
+        fourcc = cv2.VideoWriter_fourcc(*"mp4v")
+        # Need to scale to this height and width to match Affectiva input
+        target_width = 320
+        target_height = 240
+        self.target_shape = (target_height, target_width)
 
-def capture_webcam(output_dir):
-    video_capture = cv2.VideoCapture(0)
+        frame_width = int(self.video_capture.get(3))
+        frame_height = int(self.video_capture.get(4))
+        self.frame_shape = (frame_height, frame_width)
 
-    # Output
-    fourcc = cv2.VideoWriter_fourcc(*"mp4v")
+        video_fps = 14
 
-    # Need to scale to this height and width to match Affectiva input
-    target_width = 320
-    target_height = 240
-    target_shape = (target_height, target_width)
+        self.out = cv2.VideoWriter()
+        self.out.open(
+            self.output_dir, fourcc, video_fps, (target_width, target_height), True,
+        )
+        return self
 
-    frame_width = int(video_capture.get(3))
-    frame_height = int(video_capture.get(4))
-    frame_shape = (frame_height, frame_width)
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        print("Cleaning up...")
+        self.video_capture.release()
+        self.out.release()
+        cv2.destroyAllWindows()
 
-    print(f"frame (height, width): {frame_shape}")
+    def resize_frame(self, frame):
+        frame_remainder = tuple(
+            t1 % t2 for t1, t2 in zip(self.frame_shape, self.target_shape)
+        )
+        crop_width = frame_remainder[0] // 2
+        crop_height = frame_remainder[1] // 2
+        height, width = self.frame_shape
+        target_height, target_width = self.target_shape
+        frame = frame[
+            crop_height : height - crop_height, crop_width : width - crop_width
+        ]
+        frame = cv2.resize(frame, (target_width, target_height))
+        return frame
 
-    video_fps = 14
-
-    out = cv2.VideoWriter()
-    out.open(
-        output_dir, fourcc, video_fps, (target_width, target_height), True,
-    )
-
-    try:
+    def run(self):
         while True:
             # Grab a single frame of video
-            ret, frame = video_capture.read()
-            frame = resize_frame(
-                frame, frame_shape=frame_shape, target_shape=target_shape
-            )
+            ret, frame = self.video_capture.read()
+            frame = self.resize_frame(frame)
 
             # Display the resulting image
             cv2.imshow("Video", frame)
 
             # Record
-            out.write(frame)
+            self.out.write(frame)
 
             # Hit 'q' on the keyboard to quit
             if cv2.waitKey(1) & 0xFF == ord("q"):
                 break
-    finally:
-        print("Cleaning up...")
-        video_capture.release()
-        out.release()
-        cv2.destroyAllWindows()
 
 
 async def main(args):
-    capture_webcam(args.output)
+    with RecordFromWebCam(args.output) as rec:
+        rec.run()
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
