@@ -1,66 +1,20 @@
-import os
 from itertools import count
 from sys import stdout
+from pathlib import Path
+import pickle
 import time
+import datetime as dt
 import numpy as np
-import gym
 import matplotlib
 import matplotlib.pyplot as plt
-import pygame
+import pandas as pd
 from sklearn.linear_model import SGDRegressor
 from sklearn.kernel_approximation import RBFSampler
 from sklearn import pipeline, preprocessing
 
-matplotlib.use("Agg")  # stops python crashing
-pygame.init()
-
-FONT = pygame.font.Font("freesansbold.ttf", 32)
-ACTION_MAP = {0: "left", 1: "none", 2: "right"}
-
-# set position of pygame window (so it doesn't overlap with gym)
-os.environ["SDL_VIDEO_WINDOW_POS"] = "1000,100"
-
-
-def get_scalar_feedback(screen):
-    """
-    Get human input. 'W' key for positive, 'A' key for negative.
-    Args:
-        screen: pygame screen object
-
-    Returns: scalar reward (1 for positive, -1 for negative)
-    """
-    reward = 0
-    for event in pygame.event.get():
-        if event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_w:
-                screen.fill((0, 255, 0))
-                reward = 1
-                break
-            elif event.key == pygame.K_a:
-                screen.fill((255, 0, 0))
-                reward = -1
-                break
-    else:
-        screen.fill((0, 0, 0))
-    pygame.display.flip()
-    # print(reward)
-    return reward
-
-
-def show_action(screen, action):
-    """
-    Show agent's action on pygame screen
-    Args:
-        screen: pygame screen object
-        action: numerical action (for MountainCar environment only currently)
-    """
-    screen.fill((0, 0, 0))
-    pygame.display.flip()
-    text = FONT.render(ACTION_MAP[action], True, (0, 255, 0))
-    text_rect = text.get_rect()
-    text_rect.center = (100, 50)
-    screen.blit(text, text_rect)
-    pygame.display.flip()
+MOUNTAINCAR_ACTION_MAP = {0: "left", 1: "none", 2: "right"}
+MODELS_DIR = Path(__file__).parent.joinpath("models")
+LOGS_DIR = Path(__file__).parent.joinpath("logs")
 
 
 class LinearFunctionApproximator:
@@ -128,125 +82,201 @@ class TAMERAgent:
         num_episodes,
         tame=True,
         ts_len=0.2,
+        model_file_to_load=None,  # filename of pretrained model
     ):
-
-        if tame:
-            self.H = LinearFunctionApproximator(env)  # init H function
-        else:  # optionally run as standard Q Learning
-            self.Q = LinearFunctionApproximator(env)  # init Q function
-
         self.tame = tame
         self.ts_len = ts_len  # length of timestep for training TAMER
         self.env = env
+
+        # init model
+        if model_file_to_load is not None:
+            print(f"Loaded pretrained model: {model_file_to_load}")
+            self.load_model(filename=model_file_to_load)
+        else:
+            if tame:
+                self.H = LinearFunctionApproximator(env)  # init H function
+            else:  # optionally run as standard Q Learning
+                self.Q = LinearFunctionApproximator(env)  # init Q function
 
         # Hyperparameters
         self.discount_factor = discount_factor  # not used for TAMER
         self.epsilon = epsilon if not tame else 0  # no epsilon for TAMER
         self.num_episodes = num_episodes
+        self.min_eps = min_eps
 
         # Calculate episodic reduction in epsilon
         self.epsilon_step = (epsilon - min_eps) / num_episodes
 
-        # Rewards
-        self.reward_list = []
+        # Reward logging
+        self.reward_log = {
+            "Episode": [],
+            "Ep start ts": [],
+            "Feedback ts": [],
+            "Reward": [],
+        }
 
     def act(self, state):
         """ Epsilon-greedy Policy """
-        if np.random.random() < 1 - epsilon:
+        if np.random.random() < 1 - self.epsilon:
             preds = self.H.predict(state) if self.tame else self.Q.predict(state)
             return np.argmax(preds)
         else:
-            return np.random.randint(0, env.action_space.n)
+            return np.random.randint(0, self.env.action_space.n)
 
-    def train(self):
-        # pygame display init
-        screen = pygame.display.set_mode((200, 100))
-        screen.fill((0, 0, 0))
-        pygame.display.flip()
-
-        # Run Q learning algorithm
-        for i in range(self.num_episodes):
-            print(f"Episode: {i + 1}  Timestep:", end="")
-            tot_reward = 0
-            state = self.env.reset()
-
-            for ts in count():
-                print(f" {ts}", end="")
-                self.env.render()  # render env
-
-                # Determine next action
-                action = self.act(state)
-                show_action(screen, action)
-
-                # Get next state and reward
-                next_state, reward, done, info = self.env.step(action)
-
-                if self.tame:
-                    time.sleep(self.ts_len)
-                    human_reward = get_scalar_feedback(screen)
-                    if human_reward != 0:
-                        self.H.update(state, action, human_reward)
-                else:
-                    if done and next_state[0] >= 0.5:
-                        td_target = reward
-                    else:
-                        td_target = reward + self.discount_factor * np.max(
-                            self.Q.predict(next_state)
-                        )
-                    self.Q.update(state, action, td_target)
-
-                tot_reward += reward
-
-                if done:
-                    print(f"  Reward: {tot_reward}")
-                    break
-
-                stdout.write("\b" * (len(str(ts)) + 1))
-                state = next_state
-
-            # Decay epsilon
-            if self.epsilon > min_eps:
-                self.epsilon -= self.epsilon_step
-
-        self.env.close()
-
-    def play(self):
-        """ Run an episode with trained agent """
-        self.epsilon = 0
+    def _train_episode(self, episode_index, disp, rec=None):
+        print(f"Episode: {episode_index + 1}  Timestep:", end="")
+        tot_reward = 0
         state = self.env.reset()
-        done = False
-        while not done:
-            action = self.act(state)
-            next_state, reward, done, info = self.env.step(action)
+        ep_start_time = dt.datetime.now().time()
+        for ts in count():
+            print(f" {ts}", end="")
             self.env.render()
+
+            # Determine next action
+            action = self.act(state)
+            if self.tame:
+                disp.show_action(action)
+
+            # Get next state and reward
+            next_state, reward, done, info = self.env.step(action)
+
+            if self.tame:
+                now = time.time()
+                while time.time() < now + self.ts_len:
+                    frame = None
+                    if rec is not None:
+                        frame = rec.get_frame()
+                        rec.show_frame(frame)
+                    time.sleep(0.01)  # save the CPU
+                    human_reward = disp.get_scalar_feedback()
+                    if human_reward != 0:
+                        feedback_ts = dt.datetime.now().time()
+                        if rec is not None:
+                            print(frame.shape)
+                        self.reward_log["Episode"].append(episode_index + 1)
+                        self.reward_log["Ep start ts"].append(ep_start_time)
+                        self.reward_log["Feedback ts"].append(feedback_ts)
+                        self.reward_log["Reward"].append(human_reward)
+                        self.H.update(state, action, human_reward)
+                        break
+
+            else:
+                if done and next_state[0] >= 0.5:
+                    td_target = reward
+                else:
+                    td_target = reward + self.discount_factor * np.max(
+                        self.Q.predict(next_state)
+                    )
+                self.Q.update(state, action, td_target)
+
+            tot_reward += reward
+
+            if done:
+                print(f"  Reward: {tot_reward}")
+                break
+
+            stdout.write("\b" * (len(str(ts)) + 1))
             state = next_state
+
+        # Decay epsilon
+        if self.epsilon > self.min_eps:
+            self.epsilon -= self.epsilon_step
+
+    async def train(
+        self, model_file_to_save=None, capture_video=False, output_dir=None
+    ):
+        """
+        TAMER (or Q learning) training loop
+        Args:
+            model_file_to_save: save Q or H model to this filename
+            capture_video: whether or not to capture webcam feed and save frames
+        """
+        # render first so that pygame display shows up on top
+        self.env.render()
+        disp = None
+        if self.tame:
+            # only init pygame display if we're actually training tamer
+            matplotlib.use("Agg")  # stops python crashing
+            from .interface import Interface
+
+            disp = Interface(action_map=MOUNTAINCAR_ACTION_MAP)
+
+        if capture_video:
+            from VideoCap.videocap import RecordFromWebCam
+
+            with RecordFromWebCam(output_dir) as rec:
+                for i in range(self.num_episodes):
+                    self._train_episode(i, disp, rec)
+        else:
+            for i in range(self.num_episodes):
+                self._train_episode(i, disp)
+
         self.env.close()
+        if model_file_to_save is not None:
+            self.save_model(filename=model_file_to_save)
 
+    def play(self, n_episodes=1, render=False):
+        """
+        Run episodes with trained agent
+        Args:
+            n_episodes: number of episodes
+            render: optionally render episodes
 
-if __name__ == "__main__":
+        Returns: list of cumulative episode rewards
+        """
+        self.epsilon = 0
+        ep_rewards = []
+        for i in range(n_episodes):
+            state = self.env.reset()
+            done = False
+            tot_reward = 0
+            while not done:
+                action = self.act(state)
+                next_state, reward, done, info = self.env.step(action)
+                tot_reward += reward
+                if render:
+                    self.env.render()
+                state = next_state
+            ep_rewards.append(tot_reward)
+            print(f"Episode: {i + 1} Reward: {tot_reward}")
+        self.env.close()
+        return ep_rewards
 
-    env = gym.make("MountainCar-v0")
+    def evaluate(self, n_episodes=100):
+        print("Evaluating agent")
+        rewards = self.play(n_episodes=n_episodes)
+        avg_reward = np.mean(rewards)
+        print(
+            f"Average total episode reward over {n_episodes} "
+            f"episodes: {avg_reward:.2f}"
+        )
+        return avg_reward
 
-    # hyperparameters
-    discount_factor = 1
-    epsilon = 0  # vanilla Q learning actually works well with no random exploration
-    min_eps = 0
-    num_episodes = 3
-    tame = True  # set to false for vanilla Q learning
+    def save_model(self, filename):
+        """
+        Save H or Q model to models dir
+        Args:
+            filename: name of pickled file
+        """
+        model = self.H if self.tame else self.Q
+        filename = filename + ".p" if not filename.endswith(".p") else filename
+        with open(MODELS_DIR.joinpath(filename), "wb") as f:
+            pickle.dump(model, f)
 
-    # set a timestep for training TAMER
-    # the more time per step, the easier for the human but the longer it takes to train (in real time)
-    # 0.2 seconds is fast but doable
-    tamer_training_timestep = 0.2  # seconds
+    def load_model(self, filename):
+        """
+        Load H or Q model from models dir
+        Args:
+            filename: name of pickled file
+        """
+        filename = filename + ".p" if not filename.endswith(".p") else filename
+        with open(MODELS_DIR.joinpath(filename), "rb") as f:
+            model = pickle.load(f)
+        if self.tame:
+            self.H = model
+        else:
+            self.Q = model
 
-    agent = TAMERAgent(
-        env,
-        discount_factor,
-        epsilon,
-        min_eps,
-        num_episodes,
-        tame,
-        tamer_training_timestep,
-    )
-    agent.train()
-    agent.play()
+    def save_reward_log(self, filename):
+        df = pd.DataFrame(self.reward_log)
+        df.to_csv(LOGS_DIR.joinpath(filename + ".csv"))

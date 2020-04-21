@@ -7,64 +7,86 @@ import os
 import cv2
 import face_recognition
 import argparse
+import asyncio
 
 
-def capture_webcam(output_dir):
-    video_capture = cv2.VideoCapture(0)
+class RecordFromWebCam:
+    def __init__(self, output_dir):
+        self.output_dir = output_dir
 
-    # Output
-    fourcc = cv2.VideoWriter_fourcc(*"mp4v")
+    def __enter__(self):
+        self.video_capture = cv2.VideoCapture(0)
 
-    frame_width = int(video_capture.get(3)) // 2
-    frame_height = int(video_capture.get(4)) // 2
+        # Output
+        fourcc = cv2.VideoWriter_fourcc(*"mp4v")
+        # Need to scale to this height and width to match Affectiva input
+        target_width = 320
+        target_height = 240
+        self.target_shape = (target_height, target_width)
 
-    video_fps = 14
+        frame_width = int(self.video_capture.get(3))
+        frame_height = int(self.video_capture.get(4))
+        self.frame_shape = (frame_height, frame_width)
 
-    out = cv2.VideoWriter()
-    out.open(
-        output_dir, fourcc, video_fps, (frame_width, frame_height), True,
-    )
+        video_fps = 14
 
-    # Initialize variables
-    face_locations = []
+        self.out = cv2.VideoWriter()
+        self.out.open(
+            self.output_dir, fourcc, video_fps, (target_width, target_height), True,
+        )
+        return self
 
-    try:
-        while True:
-            # Grab a single frame of video
-            ret, frame = video_capture.read()
-            frame = cv2.resize(frame, (frame_width, frame_height))
-
-            # Convert the image from BGR color (which OpenCV uses) to RGB color (which face_recognition uses)
-            rgb_frame = frame[:, :, ::-1]
-
-            # Find all the faces in the current frame of video
-            face_locations = face_recognition.face_locations(rgb_frame)
-
-            # Display the results
-            for top, right, bottom, left in face_locations:
-                # Draw a box around the face
-                cv2.rectangle(frame, (left, top), (right, bottom), (0, 0, 255), 2)
-                # font = cv2.FONT_HERSHEY_DUPLEX
-                # cv2.putText(frame, "Face", (top + 6, right - 6), font, 0.5, (0, 0, 255), 1)
-
-            # Display the resulting image
-            cv2.imshow("Video", frame)
-
-            # Record
-            out.write(frame)
-
-            # Hit 'q' on the keyboard to quit!
-            if cv2.waitKey(1) & 0xFF == ord("q"):
-                break
-    finally:
+    def __exit__(self, exc_type, exc_val, exc_tb):
         print("Cleaning up...")
-        video_capture.release()
-        out.release()
+        self.video_capture.release()
+        self.out.release()
         cv2.destroyAllWindows()
 
+    def resize_frame(self, frame):
+        frame_remainder = tuple(
+            t1 % t2 for t1, t2 in zip(self.frame_shape, self.target_shape)
+        )
+        crop_width = frame_remainder[0] // 2
+        crop_height = frame_remainder[1] // 2
+        height, width = self.frame_shape
+        target_height, target_width = self.target_shape
+        frame = frame[
+            crop_height : height - crop_height, crop_width : width - crop_width
+        ]
+        frame = cv2.resize(frame, (target_width, target_height))
+        return frame
 
-def main(args):
-    capture_webcam(args.output)
+    def get_frame(self):
+        # Grab a single frame of video
+        ret, frame = self.video_capture.read()
+        frame = self.resize_frame(frame)
+        return frame
+
+    def show_frame(self, frame):
+        cv2.imshow("Video", frame)
+
+    def write_frame(self, frame):
+        self.out.write(frame)
+
+    def run(self):
+        while True:
+            # Grab a single frame of video
+            frame = self.get_frame()
+
+            # Display the resulting image
+            self.show_frame(frame)
+
+            # Record
+            self.write_frame(frame)
+
+            # Hit 'q' on the keyboard to quit
+            if cv2.waitKey(1) & 0xFF == ord("q"):
+                break
+
+
+async def main(args):
+    with RecordFromWebCam(args.output) as rec:
+        rec.run()
 
 
 if __name__ == "__main__":
@@ -72,4 +94,4 @@ if __name__ == "__main__":
     default_output = os.path.join(os.getcwd(), "vidcap_output.avi")
     parser.add_argument("-o", "--output", type=str, default=default_output)
     args = parser.parse_args()
-    main(args)
+    asyncio.run(main(args))
