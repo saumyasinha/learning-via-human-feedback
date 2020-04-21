@@ -13,7 +13,7 @@ def preprocess(img, resize_dims):
     return img
 
 
-def prediction(img_path, model_path, classes, resize_dims):
+def prediction(img_path, model_path, classes):
   # load the model and predict
   model = load_model(model_path)
   # read the image and preprocess it
@@ -60,9 +60,6 @@ if __name__ == "__main__":
     parser.add_argument(
         "--image_path", default=None, type=str, help="Path to the image"
     )
-    parser.add_argument(
-        "--resize_dims", nargs="+", default=None, type=int, help="Resize dimensions"
-    )
     args = parser.parse_args()
 
     df = pd.read_csv("master.csv")
@@ -71,5 +68,4 @@ if __name__ == "__main__":
         img_path=args.image_path,
         model_path=args.model_path,
         classes=classes,
-        resize_dims=tuple(args.resize_dims),
     )
