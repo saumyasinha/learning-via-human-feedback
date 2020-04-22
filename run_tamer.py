@@ -15,7 +15,7 @@ async def main(args):
     discount_factor = 1
     epsilon = 0  # vanilla Q learning actually works well with no random exploration
     min_eps = 0
-    num_episodes = 10
+    num_episodes = 1
     tame = True  # set to false for vanilla Q learning
 
     agent = TAMERAgent(
@@ -32,7 +32,7 @@ async def main(args):
 
     # TODO: move capture_video to args
 
-    await agent.train(model_file_to_save="autosave", capture_video=True)
+    await agent.train(model_file_to_save="autosave", capture_video=False)
     # agent.load_model(filename='2_episodes_0.2s')
     # agent.play(n_episodes=1, render=True)
     # agent.evaluate()

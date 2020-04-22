@@ -118,7 +118,8 @@ class TAMERAgent:
             "Episode",
             "Ep start ts",
             "Feedback ts",
-            "Reward",
+            "Human Reward",
+            "Environment Reward",
         ]
         self.reward_log_path = os.path.join(self.output_dir, f"{self.uuid}.csv")
 
@@ -180,7 +181,8 @@ class TAMERAgent:
                                     "Episode": episode_index + 1,
                                     "Ep start ts": ep_start_time,
                                     "Feedback ts": feedback_ts,
-                                    "Reward": human_reward,
+                                    "Human Reward": human_reward,
+                                    "Environment Reward": reward
                                 }
                             )
                             self.H.update(state, action, human_reward)
@@ -195,7 +197,8 @@ class TAMERAgent:
                                         "Episode": episode_index + 1,
                                         "Ep start ts": ep_start_time,
                                         "Feedback ts": feedback_ts,
-                                        "Reward": 0,
+                                        "Human Reward": 0,
+                                        "Environment Reward": reward,
                                     }
                                 )
                                 if rec is not None:
