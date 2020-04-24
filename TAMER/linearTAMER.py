@@ -11,9 +11,12 @@ from csv import DictWriter
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
 from sklearn import pipeline, preprocessing
 from sklearn.kernel_approximation import RBFSampler
 from sklearn.linear_model import SGDRegressor
+from FaceClassifier.predict import prediction
+from RewardPrediction.hardcoding import au_to_reward_mapping
 
 MOUNTAINCAR_ACTION_MAP = {0: "left", 1: "none", 2: "right"}
 MODELS_DIR = Path(__file__).parent.joinpath("models")
@@ -86,6 +89,7 @@ class TAMERAgent:
         tame=True,
         ts_len=0.2,
         output_dir=LOGS_DIR,
+        face_classifier_path=None,
         model_file_to_load=None,  # filename of pretrained model
     ):
         self.tame = tame
@@ -93,6 +97,7 @@ class TAMERAgent:
         self.env = env
         self.uuid = uuid.uuid4()
         self.output_dir = output_dir
+        self.face_classifier_path = face_classifier_path
 
         # init model
         if model_file_to_load is not None:
@@ -173,19 +178,32 @@ class TAMERAgent:
 
                         human_reward = disp.get_scalar_feedback()
                         feedback_ts = dt.datetime.now().time()
+
                         if human_reward != 0:
+                            face_reward = 0
                             if rec is not None:
                                 rec.write_frame_image(frame, str(feedback_ts))
+                                au_output = self.predict(rec.frame_output, str(feedback_ts))
+                                face_reward = self.get_face_reward(au_output)
+                                print(face_reward)
                             dict_writer.writerow(
                                 {
                                     "Episode": episode_index + 1,
                                     "Ep start ts": ep_start_time,
                                     "Feedback ts": feedback_ts,
                                     "Human Reward": human_reward,
-                                    "Environment Reward": reward
+                                    "Environment Reward": reward,
                                 }
                             )
-                            self.H.update(state, action, human_reward)
+                            ## vanilla Tamer training
+                            # self.H.update(state, action, human_reward)
+
+                            ## Tamer training for Experiment A
+                            if face_reward!=0:
+                                self.H.update(state, action, face_reward)
+
+                            ## Tamer training for Experiment B
+                            # self.H.update(state, action, face_reward + human_reward)
                             break
                         else:
                             # Sometimes save a frame without human feedback
@@ -313,3 +331,20 @@ class TAMERAgent:
             self.H = model
         else:
             self.Q = model
+
+    def predict(self, frame_output, timestamp):
+        df = pd.read_csv('FaceClassifier/master.csv')
+        classes = df.columns[1:].to_list()
+        img_path = os.path.join(frame_output, f"{timestamp}.png")
+        preds = prediction(img_path, model_path=self.face_classifier_path, classes=classes)
+        return preds
+
+    def get_face_reward(self, x):
+
+        ## hardcoding the rewards
+        return au_to_reward_mapping(x, threshold=0.7)
+
+
+
+
+
