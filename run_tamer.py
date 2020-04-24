@@ -15,7 +15,7 @@ async def main(args):
     discount_factor = 1
     epsilon = 0  # vanilla Q learning actually works well with no random exploration
     min_eps = 0
-    num_episodes = 1
+    num_episodes = 5
     tame = True  # set to false for vanilla Q learning
 
     agent = TAMERAgent(
@@ -47,6 +47,6 @@ if __name__ == "__main__":
     # but the longer it takes to train (in real time)
     # 0.2 seconds is fast but doable
     parser.add_argument("-t", "--tamer_training_timestep", default=0.2)
-    parser.add_argument("--model_path", default='FaceClassifier/weights/model.h5', type=str, help="Path to the trained model")
+    parser.add_argument("--model_path", default='FaceClassifier/weights/dense_sigmoid.h5', type=str, help="Path to the trained model")
     args = parser.parse_args()
     asyncio.run(main(args))
