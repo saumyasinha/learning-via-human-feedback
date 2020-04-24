@@ -1,6 +1,6 @@
 import numpy as np
 from keras.models import load_model
-from FaceClassifier.utils.utils import ImageGenerator
+from utils.utils import ImageGenerator
 import cv2
 import pandas as pd
 import argparse
@@ -43,11 +43,12 @@ def prediction(img_path, model_path, classes):
 
 if __name__ == '__main__':
   parser = argparse.ArgumentParser()
-  parser.add_argument("--model_path", default='weights/model.h5', type=str, help="Path to the trained model")
-  parser.add_argument("--image_path", default=None, type=str, help="Path to the image")
+  parser.add_argument("--model_path", default='FaceClassifier/weights/model.h5', type=str, help="Path to the trained model")
+  parser.add_argument("--img_path", default=None, type=str, help="Path to the image")
+  parser.add_argument("--csv_path", default='FaceClassifier/master.csv', help="Path to csv file")
   args = parser.parse_args()
 
-  df = pd.read_csv('master.csv')
+  df = pd.read_csv(args.csv_path)
   classes = df.columns[1:].to_list()
-  preds = prediction(img_path=args.image_path, model_path=args.model_path, classes=classes)
+  preds = prediction(img_path=args.img_path, model_path=args.model_path, classes=classes)
 
