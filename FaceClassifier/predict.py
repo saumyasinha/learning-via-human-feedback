@@ -1,6 +1,6 @@
 import numpy as np
 from keras.models import load_model
-from utils.utils import ImageGenerator
+from FaceClassifier.utils.utils import ImageGenerator
 import cv2
 import pandas as pd
 import argparse
@@ -21,6 +21,9 @@ def preprocess(img, resize_dims):
 
 def prediction(img_path, model_path, classes):
   """
+  Uses a trained Keras model to make predict the probability distributin of facial action units.
+  The `prediction` fuction returns a dictionary mapping class names i.e AUs to their probability scores. 
+
   Args:
   - img_path: str, path to image
   - model_path: str, path to the trained model
@@ -40,15 +43,4 @@ def prediction(img_path, model_path, classes):
   # match the predictions to the classes
   print('Predicted class probabilities:\n {}'.format(dict(zip(classes,list(predictions)))))
   return dict(zip(classes,list(predictions)))
-
-if __name__ == '__main__':
-  parser = argparse.ArgumentParser()
-  parser.add_argument("--model_path", default='FaceClassifier/weights/model.h5', type=str, help="Path to the trained model")
-  parser.add_argument("--img_path", default=None, type=str, help="Path to the image")
-  parser.add_argument("--csv_path", default='FaceClassifier/master.csv', help="Path to csv file")
-  args = parser.parse_args()
-
-  df = pd.read_csv(args.csv_path)
-  classes = df.columns[1:].to_list()
-  preds = prediction(img_path=args.img_path, model_path=args.model_path, classes=classes)
 
