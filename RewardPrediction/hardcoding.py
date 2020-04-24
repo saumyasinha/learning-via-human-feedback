@@ -26,7 +26,8 @@ def au_to_reward_mapping(prob_mapping, threshold):
         return -1
 
     else:
-        print("choose a lower threshold")
+        # print("choose a lower threshold")
+        return 0
 
 
 

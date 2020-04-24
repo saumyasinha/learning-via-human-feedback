@@ -180,7 +180,8 @@ class TAMERAgent:
                         feedback_ts = dt.datetime.now().time()
                         if human_reward != 0:
                             if rec is not None:
-                                face_reward = self.get_reward_from_frame(frame)
+                                au_probabilities = self.predict(frame)
+                                face_reward = self.get_face_reward(au_probabilities)
                                 rec.write_frame_image(frame, str(feedback_ts))
                             dict_writer.writerow(
                                 {
@@ -327,12 +328,18 @@ class TAMERAgent:
         else:
             self.Q = model
 
-    def get_reward_from_frame(self, frame):
+    def predict(self, frame):
         df = pd.read_csv('FaceClassifier/master.csv')
         classes = df.columns[1:].to_list()
         preds = prediction(frame, model_path=self.face_classifier_path, classes=classes)
         threshold = 0.7
-        return au_to_reward_mapping(preds, threshold)
+        return preds
+
+    def get_face_reward(self, x):
+
+        ## hardcoding the rewards
+        return au_to_reward_mapping(x, threshold=0.7)
+
 
 
 
