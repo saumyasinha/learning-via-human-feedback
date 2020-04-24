@@ -90,7 +90,7 @@ class TAMERAgent:
         tame=True,
         ts_len=0.2,
         output_dir=LOGS_DIR,
-        face_classifier_path=None,
+        face_classifier_model=None,
         model_file_to_load=None,  # filename of pretrained model
     ):
         self.tame = tame
@@ -98,7 +98,7 @@ class TAMERAgent:
         self.env = env
         self.uuid = uuid.uuid4()
         self.output_dir = output_dir
-        self.face_classifier_path = face_classifier_path
+        self.face_classifier_model = face_classifier_model
 
         # init model
         if model_file_to_load is not None:
@@ -350,7 +350,7 @@ class TAMERAgent:
         df = pd.read_csv('FaceClassifier/master.csv')
         classes = df.columns[1:].to_list()
         img_path = os.path.join(frame_output, f"{timestamp}.png")
-        preds = prediction(img_path, model_path=self.face_classifier_path, classes=classes)
+        preds = prediction(img_path, model=self.face_classifier_model, classes=classes)
         return preds
 
     def get_face_reward(self, x, threshold):
