@@ -1,6 +1,6 @@
 import numpy as np
 from keras.models import load_model
-from utils.utils import ImageGenerator
+from FaceClassifier.utils.utils import ImageGenerator
 import cv2
 import pandas as pd
 import argparse

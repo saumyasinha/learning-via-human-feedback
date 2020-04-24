@@ -16,6 +16,7 @@ from sklearn import pipeline, preprocessing
 from sklearn.kernel_approximation import RBFSampler
 from sklearn.linear_model import SGDRegressor
 from FaceClassifier.predict import prediction
+from RewardPrediction.hardcoding import au_to_reward_mapping
 
 MOUNTAINCAR_ACTION_MAP = {0: "left", 1: "none", 2: "right"}
 MODELS_DIR = Path(__file__).parent.joinpath("models")
@@ -330,4 +331,9 @@ class TAMERAgent:
         df = pd.read_csv('FaceClassifier/master.csv')
         classes = df.columns[1:].to_list()
         preds = prediction(frame, model_path=self.face_classifier_path, classes=classes)
+        threshold = 0.7
+        return au_to_reward_mapping(preds, threshold)
+
+
+
 
