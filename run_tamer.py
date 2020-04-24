@@ -1,6 +1,7 @@
 import argparse
 import asyncio
 import os
+import pandas as pd
 from keras.models import load_model
 import gym
 from TAMER.linearTAMER import TAMERAgent, LOGS_DIR
@@ -17,6 +18,8 @@ async def main(args):
     num_episodes = 5
     tame = True  # set to false for vanilla Q learning
     loaded_face_classifier_model = load_model(args.face_classifier_model_path) # load pre-trained face classifier model
+    df = pd.read_csv('FaceClassifier/master.csv')
+    classes = df.columns[1:].to_list()
     agent = TAMERAgent(
         env,
         discount_factor,
@@ -25,6 +28,7 @@ async def main(args):
         num_episodes,
         tame,
         args.tamer_training_timestep,
+        AU_classes=classes,
         output_dir=args.output,
         face_classifier_model=loaded_face_classifier_model,
         model_file_to_load=None,  # pretrained model name here

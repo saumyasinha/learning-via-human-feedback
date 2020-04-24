@@ -11,7 +11,6 @@ from csv import DictWriter
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
-import pandas as pd
 from sklearn import pipeline, preprocessing
 from sklearn.kernel_approximation import RBFSampler
 from sklearn.linear_model import SGDRegressor
@@ -21,7 +20,6 @@ from RewardPrediction.hardcoding import au_to_reward_mapping
 MOUNTAINCAR_ACTION_MAP = {0: "left", 1: "none", 2: "right"}
 MODELS_DIR = Path(__file__).parent.joinpath("models")
 LOGS_DIR = Path(__file__).parent.joinpath("logs")
-
 
 
 class LinearFunctionApproximator:
@@ -89,6 +87,7 @@ class TAMERAgent:
         num_episodes,
         tame=True,
         ts_len=0.2,
+        AU_classes = None,
         output_dir=LOGS_DIR,
         face_classifier_model=None,
         model_file_to_load=None,  # filename of pretrained model
@@ -99,6 +98,7 @@ class TAMERAgent:
         self.uuid = uuid.uuid4()
         self.output_dir = output_dir
         self.face_classifier_model = face_classifier_model
+        self.AU_classes = AU_classes
 
         # init model
         if model_file_to_load is not None:
@@ -188,7 +188,8 @@ class TAMERAgent:
                                 ## get AU probabilities from face classifier model
                                 au_output = self.predict(rec.frame_output, str(feedback_ts))
                                 ## convert AU probabilities to scalar reward for training tamer
-                                face_reward = self.get_face_reward(au_output, threshold=0.5)
+                                face_reward = self.get_face_reward(au_output, threshold=0.05)
+                                # print(au_output, face_reward)
 
                             dict_writer.writerow(
                                 {
@@ -203,11 +204,12 @@ class TAMERAgent:
                             # self.H.update(state, action, human_reward)
 
                             ## Tamer training for Experiment A
-                            if face_reward!=0:
-                                self.H.update(state, action, face_reward)
+                            # if face_reward!=0:
+                            #     self.H.update(state, action, face_reward)
 
                             ## Tamer training for Experiment B
-                            # self.H.update(state, action, face_reward + human_reward)
+                            self.H.update(state, action, face_reward + human_reward)
+
                             break
                         else:
                             # Sometimes save a frame without human feedback
@@ -228,10 +230,15 @@ class TAMERAgent:
                                     ## get AU probabilities from face classifier model
                                     au_output = self.predict(rec.frame_output, str(feedback_ts))
                                     ## convert AU probabilities to scalar reward for training tamer
-                                    face_reward = self.get_face_reward(au_output, threshold=0.5)
+                                    face_reward = self.get_face_reward(au_output, threshold=0.05)
 
-                                    if face_reward != 0:
-                                        self.H.update(state, action, face_reward)
+                                    ## Tamer training for Experiment A
+                                    # if face_reward!=0:
+                                    #     self.H.update(state, action, face_reward)
+
+                                    ## Tamer training for Experiment B
+                                    self.H.update(state, action, face_reward + human_reward)
+
                                 break
 
                 tot_reward += reward
@@ -347,10 +354,8 @@ class TAMERAgent:
         """
         predict AU probabilities using the pretrained face classifier model on the frame
         """
-        df = pd.read_csv('FaceClassifier/master.csv')
-        classes = df.columns[1:].to_list()
         img_path = os.path.join(frame_output, f"{timestamp}.png")
-        preds = prediction(img_path, model=self.face_classifier_model, classes=classes)
+        preds = prediction(img_path, model=self.face_classifier_model, classes=self.AU_classes)
         return preds
 
     def get_face_reward(self, x, threshold):
