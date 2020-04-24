@@ -178,25 +178,29 @@ class TAMERAgent:
 
                         human_reward = disp.get_scalar_feedback()
                         feedback_ts = dt.datetime.now().time()
+
                         if human_reward != 0:
+                            face_reward = 0
                             if rec is not None:
-                                au_probabilities = self.predict(frame)
-                                face_reward = self.get_face_reward(au_probabilities)
                                 rec.write_frame_image(frame, str(feedback_ts))
+                                au_output = self.predict(rec.frame_output, str(feedback_ts))
+                                face_reward = self.get_face_reward(au_output)
+                                print(face_reward)
                             dict_writer.writerow(
                                 {
                                     "Episode": episode_index + 1,
                                     "Ep start ts": ep_start_time,
                                     "Feedback ts": feedback_ts,
                                     "Human Reward": human_reward,
-                                    "Environment Reward": reward
+                                    "Environment Reward": reward,
                                 }
                             )
                             ## vanilla Tamer training
                             # self.H.update(state, action, human_reward)
 
                             ## Tamer training for Experiment A
-                            self.H.update(state, action, face_reward)
+                            if face_reward!=0:
+                                self.H.update(state, action, face_reward)
 
                             ## Tamer training for Experiment B
                             # self.H.update(state, action, face_reward + human_reward)
@@ -328,11 +332,11 @@ class TAMERAgent:
         else:
             self.Q = model
 
-    def predict(self, frame):
+    def predict(self, frame_output, timestamp):
         df = pd.read_csv('FaceClassifier/master.csv')
         classes = df.columns[1:].to_list()
-        preds = prediction(frame, model_path=self.face_classifier_path, classes=classes)
-        threshold = 0.7
+        img_path = os.path.join(frame_output, f"{timestamp}.png")
+        preds = prediction(img_path, model_path=self.face_classifier_path, classes=classes)
         return preds
 
     def get_face_reward(self, x):
