@@ -23,6 +23,7 @@ MODELS_DIR = Path(__file__).parent.joinpath("models")
 LOGS_DIR = Path(__file__).parent.joinpath("logs")
 
 
+
 class LinearFunctionApproximator:
     def __init__(self, env):
         """
@@ -179,14 +180,15 @@ class TAMERAgent:
                         human_reward = disp.get_scalar_feedback()
                         feedback_ts = dt.datetime.now().time()
 
+                        face_reward = 0  # initialize rewards from facial expressions as 0
                         if human_reward != 0:
-                            face_reward = 0   #initialize rewards from facial expressions as 0
+
                             if rec is not None:
                                 rec.write_frame_image(frame, str(feedback_ts))
                                 ## get AU probabilities from face classifier model
                                 au_output = self.predict(rec.frame_output, str(feedback_ts))
                                 ## convert AU probabilities to scalar reward for training tamer
-                                face_reward = self.get_face_reward(au_output, threshold=0.7)
+                                face_reward = self.get_face_reward(au_output, threshold=0.5)
 
                             dict_writer.writerow(
                                 {
@@ -223,6 +225,13 @@ class TAMERAgent:
                                 )
                                 if rec is not None:
                                     rec.write_frame_image(frame, str(feedback_ts))
+                                    ## get AU probabilities from face classifier model
+                                    au_output = self.predict(rec.frame_output, str(feedback_ts))
+                                    ## convert AU probabilities to scalar reward for training tamer
+                                    face_reward = self.get_face_reward(au_output, threshold=0.5)
+
+                                    if face_reward != 0:
+                                        self.H.update(state, action, face_reward)
                                 break
 
                 tot_reward += reward
@@ -346,7 +355,7 @@ class TAMERAgent:
 
     def get_face_reward(self, x, threshold):
         """
-        convert aAU probabilities into scalar reward inputs for TAMER (hardcoded for now)
+        convert AU probabilities into scalar reward inputs for TAMER (hardcoded for now)
         """
 
         return au_to_reward_mapping(x, threshold)
