@@ -180,12 +180,14 @@ class TAMERAgent:
                         feedback_ts = dt.datetime.now().time()
 
                         if human_reward != 0:
-                            face_reward = 0
+                            face_reward = 0   #initialize rewards from facial expressions as 0
                             if rec is not None:
                                 rec.write_frame_image(frame, str(feedback_ts))
+                                ## get AU probabilities from face classifier model
                                 au_output = self.predict(rec.frame_output, str(feedback_ts))
-                                face_reward = self.get_face_reward(au_output)
-                                print(face_reward)
+                                ## convert AU probabilities to scalar reward for training tamer
+                                face_reward = self.get_face_reward(au_output, threshold=0.7)
+
                             dict_writer.writerow(
                                 {
                                     "Episode": episode_index + 1,
@@ -333,16 +335,21 @@ class TAMERAgent:
             self.Q = model
 
     def predict(self, frame_output, timestamp):
+        """
+        predict AU probabilities using the pretrained face classifier model on the frame
+        """
         df = pd.read_csv('FaceClassifier/master.csv')
         classes = df.columns[1:].to_list()
         img_path = os.path.join(frame_output, f"{timestamp}.png")
         preds = prediction(img_path, model_path=self.face_classifier_path, classes=classes)
         return preds
 
-    def get_face_reward(self, x):
+    def get_face_reward(self, x, threshold):
+        """
+        convert aAU probabilities into scalar reward inputs for TAMER (hardcoded for now)
+        """
 
-        ## hardcoding the rewards
-        return au_to_reward_mapping(x, threshold=0.7)
+        return au_to_reward_mapping(x, threshold)
 
 
 
