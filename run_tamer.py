@@ -27,12 +27,13 @@ async def main(args):
         tame,
         args.tamer_training_timestep,
         output_dir=args.output,
+        face_classifier_path=args.model_path,
         model_file_to_load=None,  # pretrained model name here
     )
 
     # TODO: move capture_video to args
 
-    await agent.train(model_file_to_save="autosave", capture_video=False)
+    await agent.train(model_file_to_save="autosave", capture_video=True)
     # agent.load_model(filename='2_episodes_0.2s')
     # agent.play(n_episodes=1, render=True)
     # agent.evaluate()
@@ -46,5 +47,6 @@ if __name__ == "__main__":
     # but the longer it takes to train (in real time)
     # 0.2 seconds is fast but doable
     parser.add_argument("-t", "--tamer_training_timestep", default=0.2)
+    parser.add_argument("--model_path", default='FaceClassifier/weights/model.h5', type=str, help="Path to the trained model")
     args = parser.parse_args()
     asyncio.run(main(args))
