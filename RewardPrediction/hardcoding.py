@@ -20,19 +20,19 @@ def au_to_reward_mapping(prob_mapping, threshold):
     ) > threshold:
         return 1
 
-    ## Sadness && Anger
-    if (prob_mapping["AU04"] + prob_mapping["AU05"]) > threshold:
+    ## Sadness (and surprise)
+    if (prob_mapping["AU02"] + prob_mapping["AU04"] + prob_mapping["AU05"]) > threshold:
         return -1
 
     ## Fear
-    if (
-        prob_mapping["AU02"]
-        + prob_mapping["AU04"]
-        + prob_mapping["AU05"]
-        + prob_mapping["AU20"]
-        + prob_mapping["AU26"]
-    ) > threshold:
-        return -1
+    # if (
+    #     prob_mapping["AU02"]
+    #     + prob_mapping["AU04"]
+    #     + prob_mapping["AU05"]
+    #     + prob_mapping["AU20"]
+    #     + prob_mapping["AU26"]
+    # ) > threshold:
+    #     return -1
 
     else:
         # print("choose a lower threshold")
