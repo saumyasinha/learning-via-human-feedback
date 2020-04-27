@@ -17,8 +17,10 @@ async def main(args):
     min_eps = 0
     num_episodes = 5
     tame = True  # set to false for vanilla Q learning
-    loaded_face_classifier_model = load_model(args.face_classifier_model_path) # load pre-trained face classifier model
-    df = pd.read_csv('FaceClassifier/master.csv')
+    loaded_face_classifier_model = load_model(
+        args.face_classifier_model_path
+    )  # load pre-trained face classifier model
+    df = pd.read_csv("FaceClassifier/master.csv")
     classes = df.columns[1:].to_list()
     agent = TAMERAgent(
         env,
@@ -50,6 +52,11 @@ if __name__ == "__main__":
     # but the longer it takes to train (in real time)
     # 0.2 seconds is fast but doable
     parser.add_argument("-t", "--tamer_training_timestep", default=0.2)
-    parser.add_argument("--face_classifier_model_path", default='FaceClassifier/weights/dense_sigmoid.h5', type=str, help="Path to the trained model")
+    parser.add_argument(
+        "--face_classifier_model_path",
+        default="FaceClassifier/weights/dense_sigmoid.h5",
+        type=str,
+        help="Path to the trained model",
+    )
     args = parser.parse_args()
     asyncio.run(main(args))

@@ -11,16 +11,18 @@ The `prediction` fuction returns a dictionary mapping class names i.e AUs to the
 See function description for more details about arguments.
 
 """
+
+
 def preprocess(img, resize_dims):
-  generator = ImageGenerator(to_fit=False)
-  img = generator.normalize_img(img)
-  img = generator.resize_img(img, resize_dims)
-  img = np.reshape(img, (1, img.shape[0], img.shape[1], img.shape[2]))
-  return img
+    generator = ImageGenerator(to_fit=False)
+    img = generator.normalize_img(img)
+    img = generator.resize_img(img, resize_dims)
+    img = np.reshape(img, (1, img.shape[0], img.shape[1], img.shape[2]))
+    return img
 
 
 def prediction(img_path, model, model_path=None, classes=None):
-  """
+    """
   Uses a trained Keras model to make predict the probability distributin of facial action units.
   The `prediction` fuction returns a dictionary mapping class names i.e AUs to their probability scores.
 
@@ -35,18 +37,18 @@ def prediction(img_path, model, model_path=None, classes=None):
 
   """
 
-  # read the image and preprocess it
-  img = cv2.imread(img_path)
-  img = preprocess(img, resize_dims=(model.input_shape[1],model.input_shape[2]))
-  predictions = model.predict(img).flatten()
-  if classes is None:
-    classes = list(np.arange(0,len(list(predictions))))
+    # read the image and preprocess it
+    img = cv2.imread(img_path)
+    img = preprocess(img, resize_dims=(model.input_shape[1], model.input_shape[2]))
+    predictions = model.predict(img).flatten()
+    if classes is None:
+        classes = list(np.arange(0, len(list(predictions))))
 
-  return dict(zip(classes,list(predictions)))
+    return dict(zip(classes, list(predictions)))
 
 
 def prediction_on_frame(frame, model, model_path=None, classes=None):
-  """
+    """
   Uses a trained Keras model to make predict the probability distributin of facial action units.
   The `prediction` fuction returns a dictionary mapping class names i.e AUs to their probability scores.
 
@@ -60,10 +62,10 @@ def prediction_on_frame(frame, model, model_path=None, classes=None):
 
   """
 
-  # read the image and preprocess it
-  img = preprocess(frame, resize_dims=(model.input_shape[1],model.input_shape[2]))
-  predictions = list(model.predict(img).flatten())
-  if classes is None:
-    classes = list(np.arange(0, len(predictions)))
+    # read the image and preprocess it
+    img = preprocess(frame, resize_dims=(model.input_shape[1], model.input_shape[2]))
+    predictions = list(model.predict(img).flatten())
+    if classes is None:
+        classes = list(np.arange(0, len(predictions)))
 
-  return dict(zip(classes, predictions))
+    return dict(zip(classes, predictions))

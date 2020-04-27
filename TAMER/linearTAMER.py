@@ -87,7 +87,7 @@ class TAMERAgent:
         num_episodes,
         tame=True,
         ts_len=0.2,
-        AU_classes = None,
+        AU_classes=None,
         output_dir=LOGS_DIR,
         face_classifier_model=None,
         model_file_to_load=None,  # filename of pretrained model
@@ -180,7 +180,9 @@ class TAMERAgent:
                         human_reward = disp.get_scalar_feedback()
                         feedback_ts = dt.datetime.now().time()
 
-                        face_reward = 0  # initialize rewards from facial expressions as 0
+                        face_reward = (
+                            0  # initialize rewards from facial expressions as 0
+                        )
                         if human_reward != 0:
 
                             if rec is not None:
@@ -188,7 +190,9 @@ class TAMERAgent:
                                 ## get AU probabilities from face classifier model
                                 au_output = self.predict(frame)
                                 ## convert AU probabilities to scalar reward for training tamer
-                                face_reward = self.get_face_reward(au_output, threshold=0.05)
+                                face_reward = self.get_face_reward(
+                                    au_output, threshold=0.05
+                                )
                                 # print(au_output, face_reward)
 
                             dict_writer.writerow(
@@ -198,6 +202,7 @@ class TAMERAgent:
                                     "Feedback ts": feedback_ts,
                                     "Human Reward": human_reward,
                                     "Environment Reward": reward,
+                                    "Face Reward": face_reward,
                                 }
                             )
                             ## vanilla Tamer training
@@ -230,14 +235,18 @@ class TAMERAgent:
                                     ## get AU probabilities from face classifier model
                                     au_output = self.predict(frame)
                                     ## convert AU probabilities to scalar reward for training tamer
-                                    face_reward = self.get_face_reward(au_output, threshold=0.05)
+                                    face_reward = self.get_face_reward(
+                                        au_output, threshold=0.05
+                                    )
 
                                     ## Tamer training for Experiment A
                                     # if face_reward!=0:
                                     #     self.H.update(state, action, face_reward)
 
                                     ## Tamer training for Experiment B
-                                    self.H.update(state, action, face_reward + human_reward)
+                                    self.H.update(
+                                        state, action, face_reward + human_reward
+                                    )
 
                                 break
 
@@ -355,16 +364,19 @@ class TAMERAgent:
         predict AU probabilities using the pretrained face classifier model on the frame
         """
         img_path = os.path.join(frame_output, f"{timestamp}.png")
-        preds = prediction(img_path, model=self.face_classifier_model, classes=self.AU_classes)
+        preds = prediction(
+            img_path, model=self.face_classifier_model, classes=self.AU_classes
+        )
         return preds
 
     def predict(self, frame):
         """
         predict AU probabilities using the pretrained face classifier model on the frame
         """
-        preds = prediction_on_frame(frame, model=self.face_classifier_model, classes=self.AU_classes)
+        preds = prediction_on_frame(
+            frame, model=self.face_classifier_model, classes=self.AU_classes
+        )
         return preds
-
 
     def get_face_reward(self, x, threshold):
         """
@@ -372,8 +384,3 @@ class TAMERAgent:
         """
 
         return au_to_reward_mapping(x, threshold)
-
-
-
-
-
