@@ -14,7 +14,7 @@ import numpy as np
 from sklearn import pipeline, preprocessing
 from sklearn.kernel_approximation import RBFSampler
 from sklearn.linear_model import SGDRegressor
-from FaceClassifier.predict import prediction
+from FaceClassifier.predict import prediction, prediction_on_frame
 from RewardPrediction.hardcoding import au_to_reward_mapping
 
 MOUNTAINCAR_ACTION_MAP = {0: "left", 1: "none", 2: "right"}
@@ -186,7 +186,7 @@ class TAMERAgent:
                             if rec is not None:
                                 rec.write_frame_image(frame, str(feedback_ts))
                                 ## get AU probabilities from face classifier model
-                                au_output = self.predict(rec.frame_output, str(feedback_ts))
+                                au_output = self.predict(frame)
                                 ## convert AU probabilities to scalar reward for training tamer
                                 face_reward = self.get_face_reward(au_output, threshold=0.05)
                                 # print(au_output, face_reward)
@@ -228,7 +228,7 @@ class TAMERAgent:
                                 if rec is not None:
                                     rec.write_frame_image(frame, str(feedback_ts))
                                     ## get AU probabilities from face classifier model
-                                    au_output = self.predict(rec.frame_output, str(feedback_ts))
+                                    au_output = self.predict(frame)
                                     ## convert AU probabilities to scalar reward for training tamer
                                     face_reward = self.get_face_reward(au_output, threshold=0.05)
 
@@ -350,13 +350,21 @@ class TAMERAgent:
         else:
             self.Q = model
 
-    def predict(self, frame_output, timestamp):
+    def predict_file(self, frame_output, timestamp):
         """
         predict AU probabilities using the pretrained face classifier model on the frame
         """
         img_path = os.path.join(frame_output, f"{timestamp}.png")
         preds = prediction(img_path, model=self.face_classifier_model, classes=self.AU_classes)
         return preds
+
+    def predict(self, frame):
+        """
+        predict AU probabilities using the pretrained face classifier model on the frame
+        """
+        preds = prediction_on_frame(frame, model=self.face_classifier_model, classes=self.AU_classes)
+        return preds
+
 
     def get_face_reward(self, x, threshold):
         """

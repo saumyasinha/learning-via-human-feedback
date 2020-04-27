@@ -3,12 +3,11 @@ keras == 2.3.1
 albumentations == 0.4.5
 scikit-learn == 0.22.1
 opencv-python == 4.2.0.34
-pandas == 0.25
+pandas == 1.0.3
 moviepy == 1.0.2
 gym == 0.17.1
-face-recognition == 1.2.3
-matplotlib == 3.2.0
-pygame == 1.9.6
+matplotlib == 3.2.1
+pygame == 2.0.0.dev4
 # uncomment the PyTorch packages if we decide to use it
 # torch == 1.5.0
 # torchvision == 0.6.0
