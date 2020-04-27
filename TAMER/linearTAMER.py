@@ -7,6 +7,7 @@ from itertools import count
 from pathlib import Path
 from sys import stdout
 from csv import DictWriter
+from enum import Enum
 
 import matplotlib
 import matplotlib.pyplot as plt
@@ -72,6 +73,12 @@ class LinearFunctionApproximator:
         return featurized[0]
 
 
+class Experiment(Enum):
+    A = 1
+    B = 2
+    CONTROL = 3
+
+
 class TAMERAgent:
     """
     QLearning Agent adapted to TAMER using steps from:
@@ -106,8 +113,10 @@ class TAMERAgent:
             self.load_model(filename=model_file_to_load)
         else:
             if tame:
+                print("TAMER-ER")
                 self.H = LinearFunctionApproximator(env)  # init H function
             else:  # optionally run as standard Q Learning
+                print("Q-Learning")
                 self.Q = LinearFunctionApproximator(env)  # init Q function
 
         # Hyperparameters
@@ -126,6 +135,7 @@ class TAMERAgent:
             "Feedback ts",
             "Human Reward",
             "Environment Reward",
+            "Face Reward",
         ]
         self.reward_log_path = os.path.join(self.output_dir, f"{self.uuid}.csv")
 
@@ -137,7 +147,7 @@ class TAMERAgent:
         else:
             return np.random.randint(0, self.env.action_space.n)
 
-    def _train_episode(self, episode_index, disp, rec=None):
+    def _train_episode(self, episode_index, disp, rec=None, experiment=Experiment.B):
         print(f"Episode: {episode_index + 1}  Timestep:", end="")
         rng = np.random.default_rng()
         tot_reward = 0
@@ -177,14 +187,15 @@ class TAMERAgent:
 
                         time.sleep(0.01)  # save the CPU
 
+                        # initialize rewards
+                        human_reward = 0
+                        face_reward = 0
+
+                        # Check for scalar feedback
                         human_reward = disp.get_scalar_feedback()
                         feedback_ts = dt.datetime.now().time()
 
-                        face_reward = (
-                            0  # initialize rewards from facial expressions as 0
-                        )
                         if human_reward != 0:
-
                             if rec is not None:
                                 rec.write_frame_image(frame, str(feedback_ts))
                                 ## get AU probabilities from face classifier model
@@ -193,8 +204,6 @@ class TAMERAgent:
                                 face_reward = self.get_face_reward(
                                     au_output, threshold=0.05
                                 )
-                                # print(au_output, face_reward)
-
                             dict_writer.writerow(
                                 {
                                     "Episode": episode_index + 1,
@@ -205,31 +214,27 @@ class TAMERAgent:
                                     "Face Reward": face_reward,
                                 }
                             )
-                            ## vanilla Tamer training
-                            # self.H.update(state, action, human_reward)
-
-                            ## Tamer training for Experiment A
-                            # if face_reward!=0:
-                            #     self.H.update(state, action, face_reward)
-
-                            ## Tamer training for Experiment B
-                            self.H.update(state, action, face_reward + human_reward)
-
+                            if experiment is Experiment.CONTROL:
+                                # vanilla Tamer training
+                                self.H.update(state, action, human_reward)
+                            elif experiment is Experiment.A:
+                                # Tamer training for Experiment A
+                                if face_reward != 0:
+                                    self.H.update(state, action, face_reward)
+                            elif experiment is Experiment.B:
+                                # Tamer training for Experiment B
+                                self.H.update(state, action, face_reward + human_reward)
+                            else:
+                                raise NotImplementedError(
+                                    f"Experiment {experiment} not implemented"
+                                )
                             break
                         else:
                             # Sometimes save a frame without human feedback
                             # TODO: choose a better or dynamic probability
+                            # TODO: predict on face more often?
                             prob_save = 0.005
                             if rng.random() < prob_save:
-                                dict_writer.writerow(
-                                    {
-                                        "Episode": episode_index + 1,
-                                        "Ep start ts": ep_start_time,
-                                        "Feedback ts": feedback_ts,
-                                        "Human Reward": 0,
-                                        "Environment Reward": reward,
-                                    }
-                                )
                                 if rec is not None:
                                     rec.write_frame_image(frame, str(feedback_ts))
                                     ## get AU probabilities from face classifier model
@@ -239,15 +244,33 @@ class TAMERAgent:
                                         au_output, threshold=0.05
                                     )
 
-                                    ## Tamer training for Experiment A
-                                    # if face_reward!=0:
-                                    #     self.H.update(state, action, face_reward)
-
-                                    ## Tamer training for Experiment B
-                                    self.H.update(
-                                        state, action, face_reward + human_reward
-                                    )
-
+                                    if experiment is Experiment.CONTROL:
+                                        # Do nothing for control
+                                        pass
+                                    elif experiment is Experiment.A:
+                                        # Tamer training for Experiment A
+                                        if face_reward != 0:
+                                            self.H.update(state, action, face_reward)
+                                    elif experiment is Experiment.B:
+                                        # Tamer training for Experiment B
+                                        # (same as Experiment A since human reward is 0)
+                                        self.H.update(
+                                            state, action, face_reward + human_reward
+                                        )
+                                    else:
+                                        raise NotImplementedError(
+                                            f"Experiment {experiment} not implemented"
+                                        )
+                                dict_writer.writerow(
+                                    {
+                                        "Episode": episode_index + 1,
+                                        "Ep start ts": ep_start_time,
+                                        "Feedback ts": feedback_ts,
+                                        "Human Reward": 0,
+                                        "Environment Reward": reward,
+                                        "Face Reward": face_reward,
+                                    }
+                                )
                                 break
 
                 tot_reward += reward
