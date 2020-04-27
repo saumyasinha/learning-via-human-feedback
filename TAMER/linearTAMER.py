@@ -7,15 +7,15 @@ from itertools import count
 from pathlib import Path
 from sys import stdout
 from csv import DictWriter
+from enum import Enum
 
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
-import pandas as pd
 from sklearn import pipeline, preprocessing
 from sklearn.kernel_approximation import RBFSampler
 from sklearn.linear_model import SGDRegressor
-from FaceClassifier.predict import prediction
+from FaceClassifier.predict import prediction, prediction_on_frame
 from RewardPrediction.hardcoding import au_to_reward_mapping
 
 MOUNTAINCAR_ACTION_MAP = {0: "left", 1: "none", 2: "right"}
@@ -73,6 +73,12 @@ class LinearFunctionApproximator:
         return featurized[0]
 
 
+class Experiment(Enum):
+    A = 1
+    B = 2
+    CONTROL = 3
+
+
 class TAMERAgent:
     """
     QLearning Agent adapted to TAMER using steps from:
@@ -88,8 +94,9 @@ class TAMERAgent:
         num_episodes,
         tame=True,
         ts_len=0.2,
+        AU_classes=None,
         output_dir=LOGS_DIR,
-        face_classifier_path=None,
+        face_classifier_model=None,
         model_file_to_load=None,  # filename of pretrained model
     ):
         self.tame = tame
@@ -97,7 +104,8 @@ class TAMERAgent:
         self.env = env
         self.uuid = uuid.uuid4()
         self.output_dir = output_dir
-        self.face_classifier_path = face_classifier_path
+        self.face_classifier_model = face_classifier_model
+        self.AU_classes = AU_classes
 
         # init model
         if model_file_to_load is not None:
@@ -105,8 +113,10 @@ class TAMERAgent:
             self.load_model(filename=model_file_to_load)
         else:
             if tame:
+                print("TAMER-ER")
                 self.H = LinearFunctionApproximator(env)  # init H function
             else:  # optionally run as standard Q Learning
+                print("Q-Learning")
                 self.Q = LinearFunctionApproximator(env)  # init Q function
 
         # Hyperparameters
@@ -125,6 +135,7 @@ class TAMERAgent:
             "Feedback ts",
             "Human Reward",
             "Environment Reward",
+            "Face Reward",
         ]
         self.reward_log_path = os.path.join(self.output_dir, f"{self.uuid}.csv")
 
@@ -136,7 +147,7 @@ class TAMERAgent:
         else:
             return np.random.randint(0, self.env.action_space.n)
 
-    def _train_episode(self, episode_index, disp, rec=None):
+    def _train_episode(self, episode_index, disp, rec=None, experiment=Experiment.B):
         print(f"Episode: {episode_index + 1}  Timestep:", end="")
         rng = np.random.default_rng()
         tot_reward = 0
@@ -176,16 +187,23 @@ class TAMERAgent:
 
                         time.sleep(0.01)  # save the CPU
 
+                        # initialize rewards
+                        human_reward = 0
+                        face_reward = 0
+
+                        # Check for scalar feedback
                         human_reward = disp.get_scalar_feedback()
                         feedback_ts = dt.datetime.now().time()
 
                         if human_reward != 0:
-                            face_reward = 0
                             if rec is not None:
                                 rec.write_frame_image(frame, str(feedback_ts))
-                                au_output = self.predict(rec.frame_output, str(feedback_ts))
-                                face_reward = self.get_face_reward(au_output)
-                                print(face_reward)
+                                ## get AU probabilities from face classifier model
+                                au_output = self.predict(frame)
+                                ## convert AU probabilities to scalar reward for training tamer
+                                face_reward = self.get_face_reward(
+                                    au_output, threshold=0.05
+                                )
                             dict_writer.writerow(
                                 {
                                     "Episode": episode_index + 1,
@@ -193,23 +211,56 @@ class TAMERAgent:
                                     "Feedback ts": feedback_ts,
                                     "Human Reward": human_reward,
                                     "Environment Reward": reward,
+                                    "Face Reward": face_reward,
                                 }
                             )
-                            ## vanilla Tamer training
-                            # self.H.update(state, action, human_reward)
-
-                            ## Tamer training for Experiment A
-                            if face_reward!=0:
-                                self.H.update(state, action, face_reward)
-
-                            ## Tamer training for Experiment B
-                            # self.H.update(state, action, face_reward + human_reward)
+                            if experiment is Experiment.CONTROL:
+                                # vanilla Tamer training
+                                self.H.update(state, action, human_reward)
+                            elif experiment is Experiment.A:
+                                # Tamer training for Experiment A
+                                if face_reward != 0:
+                                    self.H.update(state, action, face_reward)
+                            elif experiment is Experiment.B:
+                                # Tamer training for Experiment B
+                                self.H.update(state, action, face_reward + human_reward)
+                            else:
+                                raise NotImplementedError(
+                                    f"Experiment {experiment} not implemented"
+                                )
                             break
                         else:
                             # Sometimes save a frame without human feedback
                             # TODO: choose a better or dynamic probability
+                            # TODO: predict on face more often?
                             prob_save = 0.005
                             if rng.random() < prob_save:
+                                if rec is not None:
+                                    rec.write_frame_image(frame, str(feedback_ts))
+                                    ## get AU probabilities from face classifier model
+                                    au_output = self.predict(frame)
+                                    ## convert AU probabilities to scalar reward for training tamer
+                                    face_reward = self.get_face_reward(
+                                        au_output, threshold=0.05
+                                    )
+
+                                    if experiment is Experiment.CONTROL:
+                                        # Do nothing for control
+                                        pass
+                                    elif experiment is Experiment.A:
+                                        # Tamer training for Experiment A
+                                        if face_reward != 0:
+                                            self.H.update(state, action, face_reward)
+                                    elif experiment is Experiment.B:
+                                        # Tamer training for Experiment B
+                                        # (same as Experiment A since human reward is 0)
+                                        self.H.update(
+                                            state, action, face_reward + human_reward
+                                        )
+                                    else:
+                                        raise NotImplementedError(
+                                            f"Experiment {experiment} not implemented"
+                                        )
                                 dict_writer.writerow(
                                     {
                                         "Episode": episode_index + 1,
@@ -217,10 +268,9 @@ class TAMERAgent:
                                         "Feedback ts": feedback_ts,
                                         "Human Reward": 0,
                                         "Environment Reward": reward,
+                                        "Face Reward": face_reward,
                                     }
                                 )
-                                if rec is not None:
-                                    rec.write_frame_image(frame, str(feedback_ts))
                                 break
 
                 tot_reward += reward
@@ -332,19 +382,28 @@ class TAMERAgent:
         else:
             self.Q = model
 
-    def predict(self, frame_output, timestamp):
-        df = pd.read_csv('FaceClassifier/master.csv')
-        classes = df.columns[1:].to_list()
+    def predict_file(self, frame_output, timestamp):
+        """
+        predict AU probabilities using the pretrained face classifier model on the frame
+        """
         img_path = os.path.join(frame_output, f"{timestamp}.png")
-        preds = prediction(img_path, model_path=self.face_classifier_path, classes=classes)
+        preds = prediction(
+            img_path, model=self.face_classifier_model, classes=self.AU_classes
+        )
         return preds
 
-    def get_face_reward(self, x):
+    def predict(self, frame):
+        """
+        predict AU probabilities using the pretrained face classifier model on the frame
+        """
+        preds = prediction_on_frame(
+            frame, model=self.face_classifier_model, classes=self.AU_classes
+        )
+        return preds
 
-        ## hardcoding the rewards
-        return au_to_reward_mapping(x, threshold=0.7)
+    def get_face_reward(self, x, threshold):
+        """
+        convert AU probabilities into scalar reward inputs for TAMER (hardcoded for now)
+        """
 
-
-
-
-
+        return au_to_reward_mapping(x, threshold)
