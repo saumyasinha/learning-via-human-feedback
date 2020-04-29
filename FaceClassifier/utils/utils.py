@@ -1,7 +1,6 @@
 from keras.utils import Sequence
 import numpy as np
 from imutils import face_utils
-import dlib
 import cv2
 from keras.utils import to_categorical
 import os
@@ -134,25 +133,25 @@ class ImageGenerator(Sequence):
     def resize_img(self, img, resize_dims):
         return cv2.resize(img, resize_dims)
 
-    def get_landmark_points(img):
-        # p = pre-treined model path
-        p = "./weights/shape_predictor_68_face_landmarks.dat"
-        detector = dlib.get_frontal_face_detector()
-        predictor = dlib.shape_predictor(p)
+    def get_landmark_points(self, img, detector, predictor):
 
         # Converting the image to gray scale
         gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
-        rect = detector(gray, 0)[0]
-
+        rects = detector(gray, 0)
+        if len(rects)>0:
+            rect = rects[0]
         # Find the landmark points
         # Make the prediction and transform it to numpy array
-        shape = predictor(gray, rect)
-        shape = face_utils.shape_to_np(shape)
+            shape = predictor(gray, rect)
+            shape = face_utils.shape_to_np(shape)
 
-        # # Draw on our image, all the landmark points (x,y)
-        # for (x, y) in shape:
-        #     cv2.circle(image, (x, y), 2, (0, 255, 0), -1)
+            # # Draw on our image, all the landmark points (x,y)
+            # for (x, y) in shape:
+            #     cv2.circle(image, (x, y), 2, (0, 255, 0), -1)
 
-        return shape
+            return shape
+
+        else:
+            return "error"
 

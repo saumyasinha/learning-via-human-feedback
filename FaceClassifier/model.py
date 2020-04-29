@@ -3,6 +3,7 @@ from keras.layers import BatchNormalization, Activation, Dropout
 from keras.models import Model, Sequential
 
 
+
 def BatchNorm():
     return BatchNormalization(momentum=0.95, epsilon=1e-5)
 
@@ -122,3 +123,5 @@ def VGG16_model(input_shape, num_classes, final_activation_fn="softmax"):
 
     model = Model(input_layer, x)
     return model
+
+
