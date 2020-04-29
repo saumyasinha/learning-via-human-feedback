@@ -5,16 +5,16 @@ import argparse
 import albumentations
 from utils.losses import focal_loss
 import pandas as pd
-from model import custom_model
+from model import custom_model, VGG16_model
 from sklearn.model_selection import train_test_split
-from utils.utils import ImageGenerator
+from utils.utils import ImageGenerator, FERGenerator
 from keras.optimizers import Adam
 from keras.callbacks import ModelCheckpoint, ReduceLROnPlateau
 from keras.regularizers import l2
 from keras.models import Model
 
 
-def prepareData(csv_dir, dropThresh=100):
+def prepareAffectivaData(csv_dir, dropThresh=100):
     list_dfs = []
     dropCols = []
     for i in os.listdir(csv_dir):
@@ -34,24 +34,17 @@ def prepareData(csv_dir, dropThresh=100):
 
 
 def train(args):
-    df = prepareData(args.csv_dir)
+    df = prepareAffectivaData(args.csv_dir)
     print(df)
     # save to file
     df.to_csv("master.csv", index=False)
     # path column is not part of the classes
     num_classes = len(df.columns[1:])
+    # read in dataframe for FER
+    # df = pd.read_csv(args.csv_file)
     # split data into training set and validation set
     X_train, X_val = train_test_split(
-        list(df.iloc[:, 0]), shuffle=True, test_size=args.test_size
-    )
-    file = open("{}.txt".format(os.path.splitext(args.model_name)[0]), "w")
-    file.write("Validation images: \n{}".format(X_val))
-    file.close()
-    print(
-        "Saved list of validation images in {}.txt".format(
-            os.path.splitext(args.model_name)[0]
-        )
-    )
+        list(df.iloc[:,0]), shuffle=True, random_state=42, test_size=args.test_size)
 
     AUGMENTATIONS = albumentations.Compose(
         [
@@ -75,9 +68,9 @@ def train(args):
         input_shape=(args.input_height, args.input_width),
         batch_size=args.batch_size,
         num_channels=args.input_channels,
+        image_format=args.image_format,
         augmentation=AUGMENTATIONS,
         augment=args.augment,
-        image_format=args.image_format,
         shuffle=True,
     )
 
@@ -89,9 +82,9 @@ def train(args):
         input_shape=(args.input_height, args.input_width),
         batch_size=args.batch_size,
         num_channels=args.input_channels,
+        image_format=args.image_format,
         augmentation=None,
         augment=False,
-        image_format=args.image_format,
         shuffle=True,
     )
 
@@ -107,16 +100,7 @@ def train(args):
         for attr in ["kernel_regularizer"]:
             if hasattr(layer, attr):
                 setattr(layer, attr, regularizer)
-    # baseModel = VGG16(weights="imagenet", include_top=False,
-    #                   input_tensor=Input(shape=(args.input_height,args.input_width,args.input_channels)))
-    # construct the head of the model that will be placed on top of the
-    # the base model
-    # headModel = baseModel.output
-    # headModel = Flatten(name="flatten")(headModel)
-    # headModel = Dense(512, activation="relu")(headModel)
-    # headModel = Dropout(0.5)(headModel)
-    # headModel = Dense(num_classes, activation="softmax")(headModel)
-    # model = Model(inputs=baseModel.input, outputs=headModel)
+
     print(model.summary())
     adam = Adam(learning_rate=args.lr, clipnorm=1.0, clipvalue=0.5)
     model.compile(optimizer=adam, loss="binary_crossentropy", metrics=["accuracy"])
@@ -167,8 +151,13 @@ if __name__ == "__main__":
         "--csv_dir",
         default="csvs/",
         type=str,
-        help="Directory containing the CSV files \
-                      containing the ground truth information along with paths to images",
+        help="Directory containing the CSV files (Affectiva) containing the ground truth information along with paths to images",
+    )
+    parser.add_argument(
+        "--csv_file",
+        default=None,
+        type=str,
+        help="The csv file containing the ground truth, used for FER"
     )
     parser.add_argument("--input_height", default=240, type=int, help="Input height")
     parser.add_argument("--input_width", default=320, type=int, help="Input width")
@@ -178,12 +167,14 @@ if __name__ == "__main__":
         type=int,
         help="Number of channels in input images",
     )
-    parser.add_argument("--num_classes", default=25, type=int, help="Number of classes")
     parser.add_argument(
         "--batch_size", default=16, type=int, help="Batch size for the model"
     )
     parser.add_argument(
         "--lr", default=1e-3, type=float, help="Learning rate for the model"
+    )
+    parser.add_argument(
+        "--num_classes", default=8, type=int, help="Number of classes"
     )
     parser.add_argument(
         "--epochs", default=500, type=int, help="Number of epochs to train the model"
