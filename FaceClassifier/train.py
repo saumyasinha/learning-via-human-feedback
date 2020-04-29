@@ -34,16 +34,17 @@ def prepareAffectivaData(csv_dir, dropThresh=100):
 
 
 def train(args):
-    # df = prepareAffectivaData(args.csv_dir)
-    # print(df)
+    df = prepareAffectivaData(args.csv_dir)
+    print(df)
     # save to file
-    # df.to_csv("master.csv", index=False)
+    df.to_csv("master.csv", index=False)
     # path column is not part of the classes
-    # num_classes = len(df.columns[1:])
-    df = pd.read_csv(args.csv_file)
+    num_classes = len(df.columns[1:])
+    # read in dataframe for FER
+    # df = pd.read_csv(args.csv_file)
     # split data into training set and validation set
     X_train, X_val = train_test_split(
-        list(df['filename']), shuffle=True, random_state=42, test_size=args.test_size)
+        list(df.iloc[:,0]), shuffle=True, random_state=42, test_size=args.test_size)
 
     AUGMENTATIONS = albumentations.Compose(
         [
@@ -59,27 +60,29 @@ def train(args):
     )
 
     # generators for training and validation
-    train_gen = FERGenerator(
+    train_gen = ImageGenerator(
         df=df,
         image_dir=args.image_dir,
         image_list=X_train,
-        num_classes=args.num_classes,
+        num_classes=num_classes,
         input_shape=(args.input_height, args.input_width),
         batch_size=args.batch_size,
         num_channels=args.input_channels,
+        image_format=args.image_format,
         augmentation=AUGMENTATIONS,
         augment=args.augment,
         shuffle=True,
     )
 
-    valid_gen = FERGenerator(
+    valid_gen = ImageGenerator(
         df=df,
         image_dir=args.image_dir,
         image_list=X_val,
-        num_classes=args.num_classes,
+        num_classes=num_classes,
         input_shape=(args.input_height, args.input_width),
         batch_size=args.batch_size,
         num_channels=args.input_channels,
+        image_format=args.image_format,
         augmentation=None,
         augment=False,
         shuffle=True,
@@ -88,8 +91,8 @@ def train(args):
     # build the model
     model = custom_model(
         input_shape=(args.input_height, args.input_width, args.input_channels),
-        num_classes=args.num_classes,
-        final_activation_fn="softmax",
+        num_classes=num_classes,
+        final_activation_fn="sigmoid",
     )
     # add regularization
     regularizer = l2(0.01)
@@ -100,7 +103,7 @@ def train(args):
 
     print(model.summary())
     adam = Adam(learning_rate=args.lr, clipnorm=1.0, clipvalue=0.5)
-    model.compile(optimizer=adam, loss=focal_loss, metrics=["accuracy"])
+    model.compile(optimizer=adam, loss="binary_crossentropy", metrics=["accuracy"])
 
     checkpoint = ModelCheckpoint(
         os.path.join(args.model_dir, args.model_name), verbose=1, save_best_only=True
@@ -148,14 +151,13 @@ if __name__ == "__main__":
         "--csv_dir",
         default="csvs/",
         type=str,
-        help="Directory containing the CSV files \
-                      containing the ground truth information along with paths to images",
+        help="Directory containing the CSV files (Affectiva) containing the ground truth information along with paths to images",
     )
     parser.add_argument(
         "--csv_file",
         default=None,
         type=str,
-        help="The csv file containing the ground truth"
+        help="The csv file containing the ground truth, used for FER"
     )
     parser.add_argument("--input_height", default=240, type=int, help="Input height")
     parser.add_argument("--input_width", default=320, type=int, help="Input width")
