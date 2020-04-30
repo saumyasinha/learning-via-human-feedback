@@ -1,8 +1,6 @@
 import numpy as np
-from keras.models import load_model
-from FaceClassifier.utils.utils import ImageGenerator
+from FaceClassifier.utils.utils import ImageGenerator, DataGenerator, get_landmark_points
 import cv2
-import pandas as pd
 import argparse
 
 """
@@ -12,7 +10,6 @@ See function description for more details about arguments.
 
 """
 
-
 def preprocess(img, resize_dims):
     generator = ImageGenerator(to_fit=False)
     img = generator.normalize_img(img)
@@ -20,52 +17,34 @@ def preprocess(img, resize_dims):
     img = np.reshape(img, (1, img.shape[0], img.shape[1], img.shape[2]))
     return img
 
-
-def prediction(img_path, model, model_path=None, classes=None):
+def prediction_on_frame(frame, model, detector=None, predictor=None, use_CNN=False, classes=None):
     """
-  Uses a trained Keras model to make predict the probability distributin of facial action units.
-  The `prediction` fuction returns a dictionary mapping class names i.e AUs to their probability scores.
+    Uses a trained model to predict the probability distribution of facial action units.
+    The fuction returns a dictionary mapping class names i.e AUs to their probability scores.
 
-  Args:
-  - img_path: str, path to image
-  - model: keras.models.Model, use a pre-loaded model to increase speed
-  - model_path: str, path to the trained model
-  - classes: list of classes e.g. ['AU04','AU05']
+    Args:
+    - frame: numpy array, image
+    - model: keras.models.Model, use a pre-loaded model
+    - classes: list of classes e.g. ['AU04','AU05']
+    - detector: dlib facial landmarks detector
+    - predictor: dlib facial landmarks predictor
+    - use_CNN: bool, set to True to use CNN model
 
-  Returns:
-  A dictionary mapping the class labels to the precicted probability scores
+    Returns:
+      A dictionary mapping the class labels to the precicted probability scores
 
-  """
-
-    # read the image and preprocess it
-    img = cv2.imread(img_path)
-    img = preprocess(img, resize_dims=(model.input_shape[1], model.input_shape[2]))
-    predictions = model.predict(img).flatten()
-    if classes is None:
-        classes = list(np.arange(0, len(list(predictions))))
-
-    return dict(zip(classes, list(predictions)))
-
-
-def prediction_on_frame(frame, model, model_path=None, classes=None):
     """
-  Uses a trained Keras model to make predict the probability distributin of facial action units.
-  The `prediction` fuction returns a dictionary mapping class names i.e AUs to their probability scores.
+    # if use_CNN, use the CNN way
+    if use_CNN:
+        # read the image and preprocess it
+        img = preprocess(frame, resize_dims=(model.input_shape[1], model.input_shape[2]))
+        prediction = list(model.predict(img).flatten())
+    else: # use the landmarks model
+        img = cv2.resize(img,(320,240))
+        landmarks = get_landmark_points(img, detector, predictor).flatten()
+        prediction = list(model.predict(np.reshape(landmarks, (1, 136))).flatten())
 
-  Args:
-  - img_path: str, path to image
-  - model: keras.models.Model, use a pre-loaded model
-  - classes: list of classes e.g. ['AU04','AU05']
-
-  Returns:
-  A dictionary mapping the class labels to the precicted probability scores
-
-  """
-
-    # read the image and preprocess it
-    img = preprocess(frame, resize_dims=(model.input_shape[1], model.input_shape[2]))
-    predictions = list(model.predict(img).flatten())
     if classes is None:
-        classes = list(np.arange(0, len(predictions)))
+        classes = list(np.arange(0, len(prediction)))
 
-    return dict(zip(classes, predictions))
+    return dict(zip(classes, prediction))
