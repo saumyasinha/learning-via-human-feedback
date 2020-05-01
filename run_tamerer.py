@@ -11,7 +11,6 @@ from TAMER.linearTAMER import TAMERAgent, LOGS_DIR
 async def main(args):
     env = gym.make("MountainCar-v0")
 
-    # TODO: move to args?
     # hyperparameters
     discount_factor = 1
     epsilon = 0  # vanilla Q learning actually works well with no random exploration
@@ -25,8 +24,6 @@ async def main(args):
     loaded_dlib_predictor = dlib.shape_predictor(
         args.dlib_model_path
     )  # load dlib predictor
-    # df = pd.read_csv("FaceClassifier/data/master.csv")
-    # classes = df.columns[1:].to_list()
 
     # labels.npy is a dictionary, keys are ["AU01","AU02"...], values are ["Upper Lip","Raised Eyebrow"...]
     classes = list(
