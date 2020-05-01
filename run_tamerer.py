@@ -66,33 +66,24 @@ if __name__ == "__main__":
     # 0.2 seconds is fast but doable
     parser.add_argument("-t", "--tamer_training_timestep", default=0.2)
     parser.add_argument(
-<<<<<<< HEAD
         "-f",
         "--face_classifier_model_path",
-=======
-        "-f", "--face_classifier_model_path",
->>>>>>> 8a4e712e3e3259c17e62f722a2106aeb217ad5b4
         default=None,
         type=str,
         help="Path to the trained model, choose either CNN or landmarks model",
     )
     parser.add_argument(
-<<<<<<< HEAD
         "-d",
         "--dlib_model_path",
         default="FaceClassifier/weights/shape_predictor_68_face_landmarks.dat",
-=======
-        "-d", "--dlib_model_path",
-        default='FaceClassifier/weights/shape_predictor_68_face_landmarks.dat',
->>>>>>> 8a4e712e3e3259c17e62f722a2106aeb217ad5b4
         type=str,
         help="Path to the dlib model that detects and predicts facial landmarks on an image/frame",
     )
     parser.add_argument(
         "--use_cnn",
-        default=False,
+        default=True,
         type=bool,
-        help="Flag, set to True if using CNN model for facial expression classifier",
+        help="Flag, set to True by default to use CNN. Set to False if using the landmarks model for facial expression classifier.",
     )
     args = parser.parse_args()
     if args.use_cnn:
