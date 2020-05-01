@@ -8,6 +8,8 @@ moviepy == 1.0.2
 gym == 0.17.1
 matplotlib == 3.2.1
 pygame == 2.0.0.dev4
+imutils == 0.5.3
+dlib == 19.19.0
 # uncomment the PyTorch packages if we decide to use it
 # torch == 1.5.0
 # torchvision == 0.6.0
