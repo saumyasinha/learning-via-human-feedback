@@ -17,7 +17,7 @@ def preprocess(img, resize_dims):
     img = np.reshape(img, (1, img.shape[0], img.shape[1], img.shape[2]))
     return img
 
-def prediction_on_frame(frame, model, use_cnn, detector=None, predictor=None classes=None):
+def prediction_on_frame(frame, model, use_cnn, detector=None, predictor=None, classes=None):
     """
     Uses a trained model to predict the probability distribution of facial action units.
     The fuction returns a dictionary mapping class names i.e AUs to their probability scores.
@@ -40,7 +40,7 @@ def prediction_on_frame(frame, model, use_cnn, detector=None, predictor=None cla
         img = preprocess(frame, resize_dims=(model.input_shape[1], model.input_shape[2]))
         prediction = list(model.predict(img).flatten())
     else: # use the landmarks model
-        img = cv2.resize(img,(320,240))
+        img = cv2.resize(frame,(320,240))
         landmarks = get_landmark_points(img, detector, predictor).flatten()
         prediction = list(model.predict(np.reshape(landmarks, (1, 136))).flatten())
 

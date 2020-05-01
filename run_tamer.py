@@ -4,6 +4,7 @@ import os
 import dlib
 from keras.models import load_model
 import gym
+import numpy as np
 from TAMER.linearTAMER import TAMERAgent, LOGS_DIR
 
 

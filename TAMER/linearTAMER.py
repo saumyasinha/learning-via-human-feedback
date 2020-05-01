@@ -15,7 +15,7 @@ import numpy as np
 from sklearn import pipeline, preprocessing
 from sklearn.kernel_approximation import RBFSampler
 from sklearn.linear_model import SGDRegressor
-from FaceClassifier.predict import prediction, prediction_on_frame
+from FaceClassifier.predict import prediction_on_frame
 from RewardPrediction.hardcoding import au_to_reward_mapping
 
 MOUNTAINCAR_ACTION_MAP = {0: "left", 1: "none", 2: "right"}
@@ -92,7 +92,6 @@ class TAMERAgent:
         epsilon,
         min_eps,
         num_episodes,
-        use_cnn,
         tame = True,
         ts_len = 0.2,
         AU_classes = None,
@@ -100,6 +99,7 @@ class TAMERAgent:
         face_classifier_model = None,
         dlib_detector = None,
         dlib_predictor = None,
+        use_cnn = None,
         model_file_to_load = None,  # filename of pretrained model
     ):
         self.tame = tame
@@ -109,7 +109,7 @@ class TAMERAgent:
         self.output_dir = output_dir
         self.face_classifier_model = face_classifier_model
         self.dlib_detector = dlib_detector
-        self.dlib_predictor  dlib_predictor
+        self.dlib_predictor = dlib_predictor
         self.use_cnn = use_cnn
         self.AU_classes = AU_classes
 
