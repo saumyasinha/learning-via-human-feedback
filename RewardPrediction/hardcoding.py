@@ -1,3 +1,5 @@
+import numpy as np
+
 ## Followed this blog :
 ## https://imotions.com/blog/facial-action-coding-system/#emotions-action-units
 
@@ -11,6 +13,11 @@ def au_to_reward_mapping(prob_mapping, threshold):
     :param threshold: threshold to hardcode the reward output
     :return: reward mapped to the input set of probabilities
     """
+
+    au_classes = np.load('./FaceClassifier/data/labels.npy', allow_pickle=True).item()
+    au_classes = {value: key for (key, value) in au_classes.items()}
+
+    prob_mapping = {au_classes[key]:value for (key, value) in prob_mapping.items()}
 
     ## Happiness / Joy
     if (

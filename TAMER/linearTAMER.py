@@ -410,6 +410,7 @@ class TAMERAgent:
                                     predictor = self.dlib_predictor,
                                     use_cnn = self.use_cnn,
                                     classes = self.AU_classes)
+        print(preds)
         return preds
 
     def get_face_reward(self, x, threshold):
