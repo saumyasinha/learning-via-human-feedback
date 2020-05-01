@@ -92,12 +92,15 @@ class TAMERAgent:
         epsilon,
         min_eps,
         num_episodes,
-        tame=True,
-        ts_len=0.2,
-        AU_classes=None,
-        output_dir=LOGS_DIR,
-        face_classifier_model=None,
-        model_file_to_load=None,  # filename of pretrained model
+        use_cnn,
+        tame = True,
+        ts_len = 0.2,
+        AU_classes = None,
+        output_dir = LOGS_DIR,
+        face_classifier_model = None,
+        dlib_detector = None,
+        dlib_predictor = None,
+        model_file_to_load = None,  # filename of pretrained model
     ):
         self.tame = tame
         self.ts_len = ts_len  # length of timestep for training TAMER
@@ -105,6 +108,9 @@ class TAMERAgent:
         self.uuid = uuid.uuid4()
         self.output_dir = output_dir
         self.face_classifier_model = face_classifier_model
+        self.dlib_detector = dlib_detector
+        self.dlib_predictor  dlib_predictor
+        self.use_cnn = use_cnn
         self.AU_classes = AU_classes
 
         # init model
@@ -199,7 +205,7 @@ class TAMERAgent:
                             if rec is not None:
                                 rec.write_frame_image(frame, str(feedback_ts))
                                 ## get AU probabilities from face classifier model
-                                au_output = self.predict(frame)
+                                au_output = self.predict_action_units(frame)
                                 ## convert AU probabilities to scalar reward for training tamer
                                 face_reward = self.get_face_reward(
                                     au_output, threshold=0.1
@@ -383,23 +389,27 @@ class TAMERAgent:
         else:
             self.Q = model
 
-    def predict_file(self, frame_output, timestamp):
-        """
-        predict AU probabilities using the pretrained face classifier model on the frame
-        """
-        img_path = os.path.join(frame_output, f"{timestamp}.png")
-        preds = prediction(
-            img_path, model=self.face_classifier_model, classes=self.AU_classes
-        )
-        return preds
+    # def predict_file(self, frame_output, timestamp):
+    #     """
+    #     predict AU probabilities using the pretrained face classifier model on the frame
+    #     """
+    #     img_path = os.path.join(frame_output, f"{timestamp}.png")
+    #     preds = prediction(
+    #         img_path, model=self.face_classifier_model, classes=self.AU_classes
+    #     )
+    #     return preds
 
-    def predict(self, frame):
+    def predict_action_units(self, frame):
         """
         predict AU probabilities using the pretrained face classifier model on the frame
         """
-        preds = prediction_on_frame(
-            frame, model=self.face_classifier_model, classes=self.AU_classes
-        )
+        # prediction_on_frame(frame, model, use_cnn, detector=None, predictor=None, classes=None)
+        preds = prediction_on_frame(frame,
+                                    model = self.face_classifier_model,
+                                    detector = self.dlib_detector,
+                                    predictor = self.dlib_predictor,
+                                    use_cnn = self.use_cnn,
+                                    classes = self.AU_classes)
         return preds
 
     def get_face_reward(self, x, threshold):
