@@ -153,7 +153,7 @@ class TAMERAgent:
         else:
             return np.random.randint(0, self.env.action_space.n)
 
-    def _train_episode(self, episode_index, disp, rec=None, experiment=Experiment.A):
+    def _train_episode(self, episode_index, disp, rec=None, experiment=Experiment.B):
         print(f"Episode: {episode_index + 1}  Timestep:", end="")
         rng = np.random.default_rng()
         tot_reward = 0
@@ -209,7 +209,7 @@ class TAMERAgent:
                                 ## convert AU probabilities to scalar reward for training tamer
                                 if len(au_output)>0:
                                     face_reward = self.get_face_reward(
-                                        au_output, threshold=0.1
+                                        au_output, threshold=0.2
                                     )
 
                                     print(face_reward)
@@ -243,8 +243,8 @@ class TAMERAgent:
                             # Sometimes save a frame without human feedback
                             # TODO: choose a better or dynamic probability
                             # TODO: predict on face more often?
-                            # prob_save = 0.005
-                            prob_save = 0.05
+                            prob_save = 0.005
+                            # prob_save = 0.05
                             if rng.random() < prob_save:
                                 if rec is not None:
                                     rec.write_frame_image(frame, str(feedback_ts))
@@ -253,7 +253,7 @@ class TAMERAgent:
                                     ## convert AU probabilities to scalar reward for training tamer
                                     if len(au_output) > 0:
                                         face_reward = self.get_face_reward(
-                                            au_output, threshold=0.1
+                                            au_output, threshold=0.2
                                         )
                                         print(face_reward)
 
@@ -416,7 +416,7 @@ class TAMERAgent:
                                     predictor = self.dlib_predictor,
                                     use_cnn = self.use_cnn,
                                     classes = self.AU_classes)
-        # print(preds)
+        print(preds)
         return preds
 
     def get_face_reward(self, x, threshold):

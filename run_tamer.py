@@ -16,7 +16,7 @@ async def main(args):
     discount_factor = 1
     epsilon = 0  # vanilla Q learning actually works well with no random exploration
     min_eps = 0
-    num_episodes = 5
+    num_episodes = 3
     tame = True  # set to false for vanilla Q learning
     loaded_face_classifier_model = load_model(args.face_classifier_model_path)  # load pre-trained face classifier model
     loaded_dlib_detector = dlib.get_frontal_face_detector() # load dlib detector

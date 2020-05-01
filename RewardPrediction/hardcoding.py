@@ -18,7 +18,7 @@ def au_to_reward_mapping(prob_mapping, threshold):
     au_classes = {value: key for (key, value) in au_classes.items()}
 
     prob_mapping = {au_classes[key]:value for (key, value) in prob_mapping.items()}
-    print(prob_mapping)
+    # print(prob_mapping)
 
     # Happiness / Joy
     if (
@@ -36,3 +36,4 @@ def au_to_reward_mapping(prob_mapping, threshold):
     else:
         # print("choose a lower threshold")
         return 0
+
