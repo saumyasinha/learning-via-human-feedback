@@ -35,12 +35,12 @@ python3 -m pip install -r requirements.txt
 
 ### Running TAMER-ER
 
-Use `python3 run_tamer.py` to run our code.
+Use `python3 run_tamerer.py` to run our code.
 
 
 ## Authors and Citation
 
-This repo is the implementation of **Augmenting TAMER with Facial Expression Recognition: TAMER-ER**. If you use our work, please cite us.
+This repo is the implementation of **Augmenting TAMER with Facial Expression Recognition: TAMER-ER**. If you use our work, please cite us. You can find [our paper here](https://github.com/saumyasinha/learning-via-human-feedback)
 
 [Beni Bienz](https://github.com/benibienz), University of Colorado Boulder.
 
