@@ -243,12 +243,13 @@ class TAMERAgent:
                             # Sometimes save a frame without human feedback
                             # TODO: choose a better or dynamic probability
                             # TODO: predict on face more often?
-                            prob_save = 0.005
+                            # prob_save = 0.005
+                            prob_save = 0.05
                             if rng.random() < prob_save:
                                 if rec is not None:
                                     rec.write_frame_image(frame, str(feedback_ts))
                                     ## get AU probabilities from face classifier model
-                                    au_output = self.predict(frame)
+                                    au_output = self.predict_action_units(frame)
                                     ## convert AU probabilities to scalar reward for training tamer
                                     if len(au_output) > 0:
                                         face_reward = self.get_face_reward(
@@ -415,7 +416,7 @@ class TAMERAgent:
                                     predictor = self.dlib_predictor,
                                     use_cnn = self.use_cnn,
                                     classes = self.AU_classes)
-        print(preds)
+        # print(preds)
         return preds
 
     def get_face_reward(self, x, threshold):
