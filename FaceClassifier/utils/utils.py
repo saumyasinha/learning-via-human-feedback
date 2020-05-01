@@ -23,7 +23,7 @@ def get_landmark_points(img, detector, predictor):
         shape = face_utils.shape_to_np(shape)
         return shape
     else:
-        return "error"
+        return np.empty(0)
 
 
 class DataGenerator(Sequence):

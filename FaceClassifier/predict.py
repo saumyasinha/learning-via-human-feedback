@@ -41,10 +41,13 @@ def prediction_on_frame(frame, model, use_cnn, detector=None, predictor=None, cl
         prediction = list(model.predict(img).flatten())
     else: # use the landmarks model
         img = cv2.resize(frame,(320,240))
-        landmarks = get_landmark_points(img, detector, predictor).flatten()
-        prediction = list(model.predict(np.reshape(landmarks, (1, 136))).flatten())
+        landmarks = get_landmark_points(img, detector, predictor)
+        if np.shape(landmarks)[0] == 0:
+            return {}
+        else:
+            landmarks = landmarks.flatten()
+            prediction = list(model.predict(np.reshape(landmarks, (1, 136))).flatten())
+            if classes is None:
+                classes = list(np.arange(0, len(prediction)))
 
-    if classes is None:
-        classes = list(np.arange(0, len(prediction)))
-
-    return dict(zip(classes, prediction))
+            return dict(zip(classes, prediction))
