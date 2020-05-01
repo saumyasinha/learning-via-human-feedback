@@ -44,7 +44,7 @@ This repo is the implementation of **Augmenting TAMER with Facial Expression Rec
 
 [Beni Bienz](https://github.com/benibienz), University of Colorado Boulder.
 
-[Christine Chang](https://github.com/xtinebot), University of Colorado Boulder.
+[Christine Chang](http://www.xtinebot.com), University of Colorado Boulder.
 
 [Michael Lauria](https://github.com/mikedeltalima), University of Colorado Boulder.
 
@@ -52,4 +52,4 @@ This repo is the implementation of **Augmenting TAMER with Facial Expression Rec
 
 [Saumya Sinha](https://github.com/saumyasinha), University of Colorado Boulder.
 
-Special thanks to Bradley Hayes for his assistance and guidance.
+Special thanks to Dr. Bradley Hayes for his assistance and guidance.
