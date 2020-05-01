@@ -1,5 +1,9 @@
 import numpy as np
-from FaceClassifier.utils.utils import ImageGenerator, DataGenerator, get_landmark_points
+from FaceClassifier.utils.utils import (
+    ImageGenerator,
+    DataGenerator,
+    get_landmark_points,
+)
 import cv2
 import argparse
 
@@ -10,6 +14,7 @@ See function description for more details about arguments.
 
 """
 
+
 def preprocess(img, resize_dims):
     generator = ImageGenerator(to_fit=False)
     img = generator.normalize_img(img)
@@ -17,7 +22,10 @@ def preprocess(img, resize_dims):
     img = np.reshape(img, (1, img.shape[0], img.shape[1], img.shape[2]))
     return img
 
-def prediction_on_frame(frame, model, use_cnn, detector=None, predictor=None, classes=None):
+
+def prediction_on_frame(
+    frame, model, use_cnn, detector=None, predictor=None, classes=None
+):
     """
     Uses a trained model to predict the probability distribution of facial action units.
     The fuction returns a dictionary mapping class names i.e AUs to their probability scores.
@@ -37,10 +45,12 @@ def prediction_on_frame(frame, model, use_cnn, detector=None, predictor=None, cl
     # if use_cnn, use the CNN model's preprocessing
     if use_cnn:
         # read the image and preprocess it
-        img = preprocess(frame, resize_dims=(model.input_shape[1], model.input_shape[2]))
+        img = preprocess(
+            frame, resize_dims=(model.input_shape[1], model.input_shape[2])
+        )
         prediction = list(model.predict(img).flatten())
-    else: # use the landmarks model
-        img = cv2.resize(frame,(320,240))
+    else:  # use the landmarks model
+        img = cv2.resize(frame, (320, 240))
         landmarks = get_landmark_points(img, detector, predictor)
         if np.shape(landmarks)[0] == 0:
             return {}

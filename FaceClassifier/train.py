@@ -11,34 +11,44 @@ from keras.models import Model
 
 
 def train(args):
-    landmarks = np.load(args.data_file, allow_pickle='TRUE').item()
-    facial_action_units = np.load(args.ground_truth_file, allow_pickle='TRUE').item()
-    assert facial_action_units.keys() == landmarks.keys(), "Error, ground truth file and input data file haev different data"
+    landmarks = np.load(args.data_file, allow_pickle="TRUE").item()
+    facial_action_units = np.load(args.ground_truth_file, allow_pickle="TRUE").item()
+    assert (
+        facial_action_units.keys() == landmarks.keys()
+    ), "Error, ground truth file and input data file haev different data"
     # split data
     X_train, X_val = train_test_split(
-        list(facial_action_units.keys()), shuffle=True, random_state=42, test_size=args.test_size)
+        list(facial_action_units.keys()),
+        shuffle=True,
+        random_state=42,
+        test_size=args.test_size,
+    )
 
     # generators for training and validation
     train_gen = DataGenerator(
-        ground_truth = facial_action_units,
-        input_data = landmarks,
-        image_list = X_train,
-        num_classes = args.num_classes,
-        batch_size = args.batch_size,
-        shuffle = True,
+        ground_truth=facial_action_units,
+        input_data=landmarks,
+        image_list=X_train,
+        num_classes=args.num_classes,
+        batch_size=args.batch_size,
+        shuffle=True,
     )
 
     valid_gen = DataGenerator(
-        ground_truth = facial_action_units,
-        input_data = landmarks,
-        image_list = X_val,
-        num_classes = args.num_classes,
-        batch_size = args.batch_size,
-        shuffle = True,
+        ground_truth=facial_action_units,
+        input_data=landmarks,
+        image_list=X_val,
+        num_classes=args.num_classes,
+        batch_size=args.batch_size,
+        shuffle=True,
     )
 
     # build the model
-    model = landmark_network(input_shape=(args.input_size,),num_classes=args.num_classes,final_activation_fn='sigmoid')
+    model = landmark_network(
+        input_shape=(args.input_size,),
+        num_classes=args.num_classes,
+        final_activation_fn="sigmoid",
+    )
 
     print(model.summary())
     adam = Adam(learning_rate=args.lr, clipnorm=1.0, clipvalue=0.5)
@@ -80,13 +90,13 @@ if __name__ == "__main__":
         "--ground_truth_file",
         default=None,
         type=str,
-        help="The npy file containing the ground truth AU classes"
+        help="The npy file containing the ground truth AU classes",
     )
     parser.add_argument(
         "--data_file",
         default=None,
         type=str,
-        help="The npy file containing the input data"
+        help="The npy file containing the input data",
     )
     parser.add_argument(
         "--input_size", default=136, type=int, help="Input size for the model"
@@ -97,9 +107,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--lr", default=1e-3, type=float, help="Learning rate for the model"
     )
-    parser.add_argument(
-        "--num_classes", default=15, type=int, help="Number of classes"
-    )
+    parser.add_argument("--num_classes", default=15, type=int, help="Number of classes")
     parser.add_argument(
         "--epochs", default=500, type=int, help="Number of epochs to train the model"
     )

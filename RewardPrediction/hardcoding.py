@@ -14,11 +14,10 @@ def au_to_reward_mapping(prob_mapping, threshold):
     :return: reward mapped to the input set of probabilities
     """
 
-    au_classes = np.load('./FaceClassifier/data/labels.npy', allow_pickle=True).item()
+    au_classes = np.load("./FaceClassifier/data/labels.npy", allow_pickle=True).item()
     au_classes = {value: key for (key, value) in au_classes.items()}
 
-    prob_mapping = {au_classes[key]:value for (key, value) in prob_mapping.items()}
-    # print(prob_mapping)
+    prob_mapping = {au_classes[key]: value for (key, value) in prob_mapping.items()}
 
     # Happiness / Joy
     if (
@@ -28,12 +27,9 @@ def au_to_reward_mapping(prob_mapping, threshold):
     ) > threshold:
         return 1
 
-
-    ## Sadness (and surprise)
+    # Sadness (and surprise)
     if (prob_mapping["AU02"] + prob_mapping["AU04"] + prob_mapping["AU05"]) > threshold:
         return -1
 
     else:
-        # print("choose a lower threshold")
         return 0
-

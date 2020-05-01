@@ -35,13 +35,7 @@ python3 -m pip install -r requirements.txt
 
 ### Running TAMER-ER
 
-To run TAMER-ER with CNN to classify facial expressions, use:
-
-`python3 run_tamerer.py  -f FaceClassifier/weights/vanilla_cnn.h5 --use_cnn True`
-
-To run TAMER-ER with landmarks and the dense network to classify facial expressions, use:
-
-`python3 run_tamerer.py  -f FaceClassifier/weights/landmarks.h5 -d FaceClassifier/weights/shape_predictor_68_face_landmarks.dat --use_cnn False`
+Use `python3 run_tamerer.py` to run our code.
 
 
 ## Authors and Citation
