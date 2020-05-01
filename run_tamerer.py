@@ -66,7 +66,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "-f",
         "--face_classifier_model_path",
-        default=None,
+        default="FaceClassifier/weights/landmarks.h5",
         type=str,
         help="Path to the trained model, choose either CNN or landmarks model",
     )
