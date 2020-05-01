@@ -37,6 +37,8 @@ python3 -m pip install -r requirements.txt
 
 Use `python3 run_tamerer.py` to run our code.
 
+Use `python3 run_tamerer.py --help` to show usage information.
+
 
 ## Authors and Citation
 
