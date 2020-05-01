@@ -1,4 +1,4 @@
-# TAMER-ER: **Augmenting TAMER with** Facial Expression Recognition
+# TAMER-ER: Augmenting TAMER with Facial Expression Recognition
 
 ### Installation and Dependencies
 Requires Python 3.8.1 or higher
@@ -53,7 +53,5 @@ This repo is the implementation of **Augmenting TAMER with Facial Expression Rec
 [Vikas Nataraja](https://github.com/vikasnataraja), University of Colorado Boulder.
 
 [Saumya Sinha](https://github.com/saumyasinha), University of Colorado Boulder.
-
-
 
 Special thanks to Bradley Hayes for his assistance and guidance.
