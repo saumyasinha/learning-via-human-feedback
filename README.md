@@ -1,7 +1,7 @@
 # TAMER-ER: Augmenting TAMER with Facial Expression Recognition
 
 ### Installation and Dependencies
-Requires Python 3.8.1 or higher
+Requires Python 3.8.1 or higher.
 
 Clone the git repository 
 ```
@@ -12,7 +12,7 @@ git lfs pull
 ```
 
 #### Linux
-Install packages and libraries using `sh install_dependencies.sh`. This will install Python 3.8 and install all the necessary modules required to run TAMER-ER
+Install packages and libraries using `sh install_dependencies.sh`. This will install Python 3.8 and install all the necessary modules required to run TAMER-ER.
 
 #### Mac OSX
 
@@ -33,14 +33,12 @@ python3 -m pip install -r requirements.txt
 ```
 
 
-
 ### Running TAMER-ER
 
 Use `python3 run_tamer.py` to run our code.
 
 
-
-### Authors and Citation
+## Authors and Citation
 
 This repo is the implementation of **Augmenting TAMER with Facial Expression Recognition: TAMER-ER**. If you use our work, please cite us.
 
