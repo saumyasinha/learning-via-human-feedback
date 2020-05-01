@@ -49,9 +49,7 @@ async def main(args):
         model_file_to_load=None,  # pretrained model name here
     )
 
-    # TODO: move capture_video to args
-
-    await agent.train(model_file_to_save="autosave", capture_video=True)
+    await agent.train(model_file_to_save="autosave", capture_video=args.capture_video)
     # agent.load_model(filename='2_episodes_0.2s')
     # agent.play(n_episodes=1, render=True)
     # agent.evaluate()
@@ -81,16 +79,22 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--use_cnn",
-        default=True,
-        type=bool,
-        help="Flag, set to True by default to use CNN. Set to False if using the landmarks model for facial expression classifier.",
+        action="store_true",
+        help="Flag, set to False by default. Set if using the CNN model for face_classifier.",
+    )
+    parser.add_argument(
+        "--no_video_capture", dest="capture_video", action="store_false"
     )
     args = parser.parse_args()
     if args.use_cnn:
-        print("The 'use_cnn' flag is set to True,\nTAMER-ER will run with CNN" \
-              " to classify facial expressions")
+        print(
+            "The 'use_cnn' flag is set to True,\nTAMER-ER will run with CNN"
+            " to classify facial expressions"
+        )
     else:
-        print("The 'use_cnn' flag is set to False,\nTAMER-ER will run with Dense Network" \
-              " to classify facial expressions")
+        print(
+            "The 'use_cnn' flag is set to False,\nTAMER-ER will run with Dense Network"
+            " to classify facial expressions"
+        )
 
     asyncio.run(main(args))
