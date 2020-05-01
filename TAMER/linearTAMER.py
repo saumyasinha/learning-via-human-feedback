@@ -92,15 +92,15 @@ class TAMERAgent:
         epsilon,
         min_eps,
         num_episodes,
-        tame = True,
-        ts_len = 0.2,
-        AU_classes = None,
-        output_dir = LOGS_DIR,
-        face_classifier_model = None,
-        dlib_detector = None,
-        dlib_predictor = None,
-        use_cnn = None,
-        model_file_to_load = None,  # filename of pretrained model
+        tame=True,
+        ts_len=0.2,
+        AU_classes=None,
+        output_dir=LOGS_DIR,
+        face_classifier_model=None,
+        dlib_detector=None,
+        dlib_predictor=None,
+        use_cnn=None,
+        model_file_to_load=None,  # filename of pretrained model
     ):
         self.tame = tame
         self.ts_len = ts_len  # length of timestep for training TAMER
@@ -207,7 +207,7 @@ class TAMERAgent:
                                 ## get AU probabilities from face classifier model
                                 au_output = self.predict_action_units(frame)
                                 ## convert AU probabilities to scalar reward for training tamer
-                                if len(au_output)>0:
+                                if len(au_output) > 0:
                                     face_reward = self.get_face_reward(
                                         au_output, threshold=0.2
                                     )
@@ -410,12 +410,14 @@ class TAMERAgent:
         predict AU probabilities using the pretrained face classifier model on the frame
         """
         # prediction_on_frame(frame, model, use_cnn, detector=None, predictor=None, classes=None)
-        preds = prediction_on_frame(frame,
-                                    model = self.face_classifier_model,
-                                    detector = self.dlib_detector,
-                                    predictor = self.dlib_predictor,
-                                    use_cnn = self.use_cnn,
-                                    classes = self.AU_classes)
+        preds = prediction_on_frame(
+            frame,
+            model=self.face_classifier_model,
+            detector=self.dlib_detector,
+            predictor=self.dlib_predictor,
+            use_cnn=self.use_cnn,
+            classes=self.AU_classes,
+        )
         print(preds)
         return preds
 

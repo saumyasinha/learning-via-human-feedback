@@ -97,4 +97,3 @@ def landmark_network(input_shape, num_classes, final_activation_fn="sigmoid"):
     x = Activation(final_activation_fn)(x)
 
     return Model(input_layer, x)
-

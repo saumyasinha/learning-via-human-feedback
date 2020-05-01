@@ -6,6 +6,7 @@ import cv2
 from keras.utils import to_categorical
 import os
 
+
 def get_landmark_points(img, detector, predictor):
     """
     Function to detect facial landmarks in an image. Returns a numpy array containing
@@ -46,14 +47,14 @@ class DataGenerator(Sequence):
 
     def __init__(
         self,
-        ground_truth = None,
-        input_data = None,
-        image_list = None,
-        input_size = 136,
-        num_classes = None,
-        batch_size = 16,
-        to_fit = True,
-        shuffle = True,
+        ground_truth=None,
+        input_data=None,
+        image_list=None,
+        input_size=136,
+        num_classes=None,
+        batch_size=16,
+        to_fit=True,
+        shuffle=True,
     ):
 
         self.ground_truth = ground_truth
@@ -105,6 +106,7 @@ class DataGenerator(Sequence):
 
     def resize_img(self, img, resize_dims):
         return cv2.resize(img, resize_dims)
+
 
 class ImageGenerator(Sequence):
     """
