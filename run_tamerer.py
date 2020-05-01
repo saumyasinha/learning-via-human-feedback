@@ -60,13 +60,13 @@ if __name__ == "__main__":
     # 0.2 seconds is fast but doable
     parser.add_argument("-t", "--tamer_training_timestep", default=0.2)
     parser.add_argument(
-        "--face_classifier_model_path",
+        "-f", "--face_classifier_model_path",
         default=None,
         type=str,
         help="Path to the trained model, choose either CNN or landmarks model"
     )
     parser.add_argument(
-        "--dlib_model_path",
+        "-d", "--dlib_model_path",
         default='FaceClassifier/weights/shape_predictor_68_face_landmarks.dat',
         type=str,
         help="Path to the dlib model that detects and predicts facial landmarks on an image/frame"
@@ -78,4 +78,11 @@ if __name__ == "__main__":
         help="Flag, set to True if using CNN model for facial expression classifier"
     )
     args = parser.parse_args()
+    if args.use_cnn:
+        print("The 'use_cnn' flag is set to True,\nTAMER-ER will run with CNN" \
+              " to classify facial expressions")
+    else:
+        print("The 'use_cnn' flag is set to False,\nTAMER-ER will run with Dense Network" \
+              " to classify facial expressions")
+
     asyncio.run(main(args))
