@@ -3,7 +3,6 @@ from keras.layers import BatchNormalization, Activation, Dropout
 from keras.models import Model, Sequential
 
 
-
 def BatchNorm():
     return BatchNormalization(momentum=0.95, epsilon=1e-5)
 
@@ -98,6 +97,4 @@ def landmark_network(input_shape, num_classes, final_activation_fn="sigmoid"):
     x = Activation(final_activation_fn)(x)
 
     return Model(input_layer, x)
-
-
 
