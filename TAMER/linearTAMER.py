@@ -119,10 +119,8 @@ class TAMERAgent:
             self.load_model(filename=model_file_to_load)
         else:
             if tame:
-                print("TAMER-ER")
                 self.H = LinearFunctionApproximator(env)  # init H function
             else:  # optionally run as standard Q Learning
-                print("Q-Learning")
                 self.Q = LinearFunctionApproximator(env)  # init Q function
 
         # Hyperparameters
