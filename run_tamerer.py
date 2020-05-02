@@ -25,6 +25,8 @@ async def main(args):
         args.dlib_model_path
     )  # load dlib predictor
 
+    os.makedirs(args.output, exist_ok=True)
+
     # labels.npy is a dictionary, keys are ["AU01","AU02"...], values are ["Upper Lip","Raised Eyebrow"...]
     classes = list(
         np.load("FaceClassifier/data/labels.npy", allow_pickle=True).item().values()
