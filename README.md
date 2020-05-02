@@ -1,6 +1,6 @@
 # TAMER-ER: Augmenting TAMER with Facial Expression Recognition
 
-![mountain_car.png](https://github.com/saumyasinha/learning-via-human-feedback/blob/master/assets/mountain_car.png)
+<img src=https://github.com/saumyasinha/learning-via-human-feedback/blob/master/assets/mountain_car.png width="800" height="400" align="middle">
 ### Installation and Dependencies
 Requires Python 3.8.1 or higher.
 
