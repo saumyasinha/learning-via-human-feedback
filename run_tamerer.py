@@ -25,6 +25,8 @@ async def main(args):
         args.dlib_model_path
     )  # load dlib predictor
 
+    os.makedirs(args.output, exist_ok=True)
+
     # labels.npy is a dictionary, keys are ["AU01","AU02"...], values are ["Upper Lip","Raised Eyebrow"...]
     classes = list(
         np.load("FaceClassifier/data/labels.npy", allow_pickle=True).item().values()
@@ -83,15 +85,4 @@ if __name__ == "__main__":
         "--no_video_capture", dest="capture_video", action="store_false"
     )
     args = parser.parse_args()
-    if args.use_cnn:
-        print(
-            "The 'use_cnn' flag is set to True,\nTAMER-ER will run with CNN"
-            " to classify facial expressions"
-        )
-    else:
-        print(
-            "The 'use_cnn' flag is set to False,\nTAMER-ER will run with Dense Network"
-            " to classify facial expressions"
-        )
-
     asyncio.run(main(args))
