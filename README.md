@@ -3,7 +3,7 @@
 ### Installation and Dependencies
 Requires Python 3.8.1 or higher.
 
-Clone the git repository 
+Clone the git repository
 ```
 git clone https://github.com/saumyasinha/learning-via-human-feedback
 cd learning-via-human-feedback
@@ -35,7 +35,7 @@ python3 -m pip install -r requirements.txt
 
 ### Running TAMER-ER
 
-Use `python3 run_tamerer.py` to run our code.
+Use `python3 run_tamerer.py -o demo` to run our code and direct output to directory `demo`.
 
 Use `python3 run_tamerer.py --help` to show usage information.
 
