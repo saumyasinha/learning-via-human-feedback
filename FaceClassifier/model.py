@@ -1,16 +1,8 @@
+import tensorflow as tf
 from keras import backend as K
-from keras.layers import (
-    Activation,
-    BatchNormalization,
-    Conv2D,
-    Conv2DTranspose,
-    Dense,
-    Dropout,
-    Flatten,
-    Input,
-    Lambda,
-    MaxPooling2D,
-)
+from keras.layers import (Activation, BatchNormalization, Conv2D,
+                          Conv2DTranspose, Dense, Dropout, Flatten, Input,
+                          Lambda, MaxPooling2D, Reshape)
 from keras.models import Model, Sequential
 
 
@@ -109,42 +101,43 @@ def sampling(args):
     return z_mean + K.exp(0.5 * z_log_var) * epsilon
 
 
-def get_encoder(input_shape, latent_dim):
+def get_encoder(input_shape, latent_dim, padding="same"):
     inputs = Input(shape=input_shape)
 
     # block 1
-    x = Conv2D(32, kernel_size=(3, 3), padding="valid", use_bias=True)(inputs)
+    x = Conv2D(32, kernel_size=(3, 3), padding=padding, strides=2)(inputs)
     x = BatchNorm()(x)
     x = Activation("relu")(x)
-    x = MaxPooling2D(pool_size=(2, 2), strides=(2, 2))(x)
+    # x = MaxPooling2D(pool_size=(2, 2), strides=(2, 2))(x)
 
     # block 2
-    x = Conv2D(64, (3, 3), padding="valid", use_bias=False)(x)
+    x = Conv2D(64, (3, 3), padding=padding, strides=2)(x)
     x = BatchNorm()(x)
     x = Activation("relu")(x)
-    x = MaxPooling2D(pool_size=(2, 2), strides=(2, 2))(x)
+    # x = MaxPooling2D(pool_size=(2, 2), strides=(2, 2))(x)
 
     # block 3
-    x = Conv2D(128, kernel_size=(3, 3), padding="valid", use_bias=False)(x)
+    x = Conv2D(128, kernel_size=(3, 3), padding=padding, strides=2)(x)
     x = BatchNorm()(x)
     x = Activation("relu")(x)
-    x = MaxPooling2D(pool_size=(2, 2), strides=(2, 2))(x)
+    # x = MaxPooling2D(pool_size=(2, 2), strides=(2, 2))(x)
     x = Dropout(0.2)(x)
 
     # block 4
-    x = Conv2D(256, (3, 3), padding="valid", use_bias=False)(x)
+    x = Conv2D(256, (3, 3), padding=padding, strides=2)(x)
     x = BatchNorm()(x)
     x = Activation("relu")(x)
-    x = MaxPooling2D(pool_size=(2, 2), strides=(2, 2))(x)
+    # x = MaxPooling2D(pool_size=(2, 2), strides=(2, 2))(x)
     x = Dropout(0.2)(x)
 
     # block 5
-    x = Conv2D(512, kernel_size=(3, 3), padding="valid", use_bias=False)(x)
+    x = Conv2D(512, kernel_size=(3, 3), padding=padding, strides=2)(x)
     x = BatchNorm()(x)
     x = Activation("relu")(x)
-    x = MaxPooling2D(pool_size=(2, 2), strides=(2, 2))(x)
+    # x = MaxPooling2D(pool_size=(2, 2), strides=(2, 2))(x)
     x = Dropout(0.25)(x)
 
+    shape = K.int_shape(x)
     x = Flatten()(x)
 
     z_mean = Dense(latent_dim, name="z_mean")(x)
@@ -157,38 +150,48 @@ def get_encoder(input_shape, latent_dim):
     # instantiate encoder model
     encoder = Model(inputs, [z_mean, z_log_var, z], name="encoder")
     encoder.summary()
-    return encoder
+    return encoder, shape
 
 
-def get_decoder(latent_dim):
+def get_decoder(latent_dim, shape, padding="same"):
     latent_inputs = Input(shape=(latent_dim,), name="z_sampling")
+    x = Dense(shape[1] * shape[2] * shape[3], activation="relu")(latent_inputs)
+    x = Reshape((shape[1], shape[2], shape[3]))(x)
 
     # block 5
-    x = Conv2DTranspose(512, kernel_size=(3, 3), padding="valid", use_bias=False)(
-        latent_inputs
-    )
+    x = Conv2DTranspose(512, kernel_size=(3, 3), padding=padding, strides=2)(x)
     x = BatchNorm()(x)
     x = Activation("relu")(x)
 
     # block 4
-    x = Conv2DTranspose(256, (3, 3), padding="valid", use_bias=False)(x)
+    x = Conv2DTranspose(256, (3, 3), padding=padding, strides=2)(x)
     x = BatchNorm()(x)
     x = Activation("relu")(x)
 
     # block 3
-    x = Conv2DTranspose(128, kernel_size=(3, 3), padding="valid", use_bias=False)(x)
+    x = Conv2DTranspose(128, kernel_size=(3, 3), padding=padding, strides=2)(x)
     x = BatchNorm()(x)
     x = Activation("relu")(x)
 
     # block 2
-    x = Conv2DTranspose(64, (3, 3), padding="valid", use_bias=False)(x)
+    x = Conv2DTranspose(64, (3, 3), padding=padding, strides=2)(x)
     x = BatchNorm()(x)
     x = Activation("relu")(x)
 
     # block 1
-    x = Conv2DTranspose(32, kernel_size=(3, 3), padding="valid", use_bias=True)(x)
+    x = Conv2DTranspose(32, kernel_size=(3, 3), padding=padding, strides=2)(x)
     x = BatchNorm()(x)
-    outputs = Activation("relu")(x)
+    x = Activation("relu")(x)
+
+    outputs = Conv2DTranspose(
+        filters=INPUT_SHAPE[-1],
+        kernel_size=(3, 3),
+        activation="sigmoid",
+        padding="same",
+        name="decoder_output",
+    )(x)
+
+    outputs = Lambda(lambda x: tf.image.resize(x, INPUT_SHAPE[:2]))(outputs)
 
     decoder = Model(latent_inputs, outputs, name="decoder")
     decoder.summary()
@@ -197,16 +200,25 @@ def get_decoder(latent_dim):
 
 def get_vae(encoder, decoder, input_shape):
     inputs = Input(shape=input_shape)
-    outputs = decoder(encoder(inputs)[2])
+    z_mean, z_log_var, z = encoder(inputs)
+    outputs = decoder(z)
     vae = Model(inputs, outputs, name="vae")
-    return vae
+    # get loss function
+    bce_loss = K.binary_crossentropy(K.flatten(inputs), K.flatten(outputs))
+    bce_loss *= input_shape[0] * input_shape[1]
+    # kl divergence from standard normal
+    kl_loss = 1 + z_log_var - K.square(z_mean) - K.exp(z_log_var)
+    kl_loss = K.sum(kl_loss, axis=-1)
+    kl_loss *= -0.5
+    vae_loss = K.mean(bce_loss + kl_loss)
+    return vae, vae_loss
 
 
-LATENT_DIM = 2
-INPUT_SHAPE = 136
-ENCODER = get_encoder(input_shape=INPUT_SHAPE, latent_dim=LATENT_DIM)
-DECODER = get_decoder(latent_dim=LATENT_DIM)
-VAE = get_vae(ENCODER, DECODER, input_shape=INPUT_SHAPE)
+LATENT_DIM = 20
+INPUT_SHAPE = (240, 320, 3)
+ENCODER, DECONV_SHAPE = get_encoder(input_shape=INPUT_SHAPE, latent_dim=LATENT_DIM)
+DECODER = get_decoder(latent_dim=LATENT_DIM, shape=DECONV_SHAPE)
+VAE, VAE_LOSS = get_vae(ENCODER, DECODER, input_shape=INPUT_SHAPE)
 
 
 def vae_network(input_shape, latent_dim, num_classes, final_activation_fn="sigmoid"):
