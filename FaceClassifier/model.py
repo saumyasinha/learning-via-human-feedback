@@ -1,5 +1,16 @@
-from keras.layers import Conv2D, MaxPooling2D, Input, Flatten, Dense
-from keras.layers import BatchNormalization, Activation, Dropout
+from keras import backend as K
+from keras.layers import (
+    Activation,
+    BatchNormalization,
+    Conv2D,
+    Conv2DTranspose,
+    Dense,
+    Dropout,
+    Flatten,
+    Input,
+    Lambda,
+    MaxPooling2D,
+)
 from keras.models import Model, Sequential
 
 
@@ -75,6 +86,147 @@ def vanilla_cnn(input_shape, num_classes, final_activation_fn="sigmoid"):
     x = Activation(final_activation_fn)(x)
 
     return Model(input_layer, x)
+
+
+# reparameterization trick
+# instead of sampling from Q(z|X), sample epsilon = N(0,I)
+# z = z_mean + sqrt(var) * epsilon
+def sampling(args):
+    """Reparameterization trick by sampling from an isotropic unit Gaussian.
+
+    # Arguments
+        args (tensor): mean and log of variance of Q(z|X)
+
+    # Returns
+        z (tensor): sampled latent vector
+    """
+
+    z_mean, z_log_var = args
+    batch = K.shape(z_mean)[0]
+    dim = K.int_shape(z_mean)[1]
+    # by default, random_normal has mean = 0 and std = 1.0
+    epsilon = K.random_normal(shape=(batch, dim))
+    return z_mean + K.exp(0.5 * z_log_var) * epsilon
+
+
+def get_encoder(input_shape, latent_dim):
+    inputs = Input(shape=input_shape)
+
+    # block 1
+    x = Conv2D(32, kernel_size=(3, 3), padding="valid", use_bias=True)(inputs)
+    x = BatchNorm()(x)
+    x = Activation("relu")(x)
+    x = MaxPooling2D(pool_size=(2, 2), strides=(2, 2))(x)
+
+    # block 2
+    x = Conv2D(64, (3, 3), padding="valid", use_bias=False)(x)
+    x = BatchNorm()(x)
+    x = Activation("relu")(x)
+    x = MaxPooling2D(pool_size=(2, 2), strides=(2, 2))(x)
+
+    # block 3
+    x = Conv2D(128, kernel_size=(3, 3), padding="valid", use_bias=False)(x)
+    x = BatchNorm()(x)
+    x = Activation("relu")(x)
+    x = MaxPooling2D(pool_size=(2, 2), strides=(2, 2))(x)
+    x = Dropout(0.2)(x)
+
+    # block 4
+    x = Conv2D(256, (3, 3), padding="valid", use_bias=False)(x)
+    x = BatchNorm()(x)
+    x = Activation("relu")(x)
+    x = MaxPooling2D(pool_size=(2, 2), strides=(2, 2))(x)
+    x = Dropout(0.2)(x)
+
+    # block 5
+    x = Conv2D(512, kernel_size=(3, 3), padding="valid", use_bias=False)(x)
+    x = BatchNorm()(x)
+    x = Activation("relu")(x)
+    x = MaxPooling2D(pool_size=(2, 2), strides=(2, 2))(x)
+    x = Dropout(0.25)(x)
+
+    x = Flatten()(x)
+
+    z_mean = Dense(latent_dim, name="z_mean")(x)
+    z_log_var = Dense(latent_dim, name="z_log_var")(x)
+
+    # use reparameterization trick to push the sampling out as input
+    # note that "output_shape" isn't necessary with the TensorFlow backend
+    z = Lambda(sampling, output_shape=(latent_dim,), name="z")([z_mean, z_log_var])
+
+    # instantiate encoder model
+    encoder = Model(inputs, [z_mean, z_log_var, z], name="encoder")
+    encoder.summary()
+    return encoder
+
+
+def get_decoder(latent_dim):
+    latent_inputs = Input(shape=(latent_dim,), name="z_sampling")
+
+    # block 5
+    x = Conv2DTranspose(512, kernel_size=(3, 3), padding="valid", use_bias=False)(
+        latent_inputs
+    )
+    x = BatchNorm()(x)
+    x = Activation("relu")(x)
+
+    # block 4
+    x = Conv2DTranspose(256, (3, 3), padding="valid", use_bias=False)(x)
+    x = BatchNorm()(x)
+    x = Activation("relu")(x)
+
+    # block 3
+    x = Conv2DTranspose(128, kernel_size=(3, 3), padding="valid", use_bias=False)(x)
+    x = BatchNorm()(x)
+    x = Activation("relu")(x)
+
+    # block 2
+    x = Conv2DTranspose(64, (3, 3), padding="valid", use_bias=False)(x)
+    x = BatchNorm()(x)
+    x = Activation("relu")(x)
+
+    # block 1
+    x = Conv2DTranspose(32, kernel_size=(3, 3), padding="valid", use_bias=True)(x)
+    x = BatchNorm()(x)
+    outputs = Activation("relu")(x)
+
+    decoder = Model(latent_inputs, outputs, name="decoder")
+    decoder.summary()
+    return decoder
+
+
+def get_vae(encoder, decoder, input_shape):
+    inputs = Input(shape=input_shape)
+    outputs = decoder(encoder(inputs)[2])
+    vae = Model(inputs, outputs, name="vae")
+    return vae
+
+
+LATENT_DIM = 2
+INPUT_SHAPE = 136
+ENCODER = get_encoder(input_shape=INPUT_SHAPE, latent_dim=LATENT_DIM)
+DECODER = get_decoder(latent_dim=LATENT_DIM)
+VAE = get_vae(ENCODER, DECODER, input_shape=INPUT_SHAPE)
+
+
+def vae_network(input_shape, latent_dim, num_classes, final_activation_fn="sigmoid"):
+    assert input_shape == INPUT_SHAPE
+    inputs = Input(shape=input_shape)
+    z = ENCODER(inputs)[2]
+
+    x = Dense(latent_dim)(z)
+    x = BatchNorm()(x)
+    x = Activation("relu")(x)
+    x = Dropout(0.4)(x)
+
+    x = Dense(latent_dim)(x)
+    x = BatchNorm()(x)
+    x = Activation("relu")(x)
+    x = Dropout(0.4)(x)
+
+    x = Dense(num_classes)(x)
+    outputs = Activation(final_activation_fn)(x)
+    return Model(inputs, outputs, name="vae_network")
 
 
 def landmark_network(input_shape, num_classes, final_activation_fn="sigmoid"):
