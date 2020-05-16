@@ -1,19 +1,22 @@
-import numpy as np
-import os
 import argparse
-import albumentations
-from model import vanilla_cnn, landmark_network, vae_network, VAE_LOSS
-from sklearn.model_selection import train_test_split
-from utils.utils import DataGenerator, ImageGenerator
-from keras.optimizers import Adam
-from keras.callbacks import ModelCheckpoint, ReduceLROnPlateau
-from keras.regularizers import l2
-from keras.models import Model
+import os
 from functools import partial
+
+import albumentations
+import numpy as np
+import pandas as pd
+from keras.callbacks import ModelCheckpoint, ReduceLROnPlateau
+from keras.models import Model
+from keras.optimizers import Adam
+from keras.regularizers import l2
+from sklearn.model_selection import train_test_split
+
+from model import VAE_LOSS, landmark_network, vae_network, vanilla_cnn
+from utils.utils import LandmarkDataGenerator, ImageGenerator
 
 
 def landmark_train(args):
-    landmarks = np.load(args.data_file, allow_pickle="TRUE").item()
+    landmarks = np.load(args.landmark_data_file, allow_pickle="TRUE").item()
     facial_action_units = np.load(args.ground_truth_file, allow_pickle="TRUE").item()
     assert (
         facial_action_units.keys() == landmarks.keys()
@@ -27,7 +30,7 @@ def landmark_train(args):
     )
 
     # generators for training and validation
-    train_gen = DataGenerator(
+    train_gen = LandmarkDataGenerator(
         ground_truth=facial_action_units,
         input_data=landmarks,
         image_list=X_train,
@@ -36,7 +39,7 @@ def landmark_train(args):
         shuffle=True,
     )
 
-    valid_gen = DataGenerator(
+    valid_gen = LandmarkDataGenerator(
         ground_truth=facial_action_units,
         input_data=landmarks,
         image_list=X_val,
@@ -47,7 +50,7 @@ def landmark_train(args):
 
     # build the model
     model = landmark_network(
-        input_shape=(args.input_size,),
+        input_shape=(args.landmark_input_size,),
         num_classes=args.num_classes,
         final_activation_fn="sigmoid",
     )
@@ -73,28 +76,7 @@ def landmark_train(args):
 
 
 def cnn_train(args, custom_model):
-    def prepareData(csv_dir, dropThresh=100):
-        list_dfs = []
-        dropCols = []
-        for i in os.listdir(csv_dir):
-            df = pd.read_csv(os.path.join(csv_dir, i))
-            # append only the path+AU columns i.e no need for Time and Labels columns
-            list_dfs.append(df.iloc[:, 2:])
-        # Turn the list into a master dataframe and rearrange the columns
-        df = pd.concat(list_dfs)[df.columns[2:]]
-        for i in df.columns[1:]:
-            if len(df[df[i] == 1]) < dropThresh:
-                dropCols.append(i)
-        # drop the columns having counts<dropThresh
-        df = df.drop(dropCols, axis=1)
-        # Also drop any rows that might be all 0s
-        df = df[(df.iloc[:, 1:].T != 0).any()].reset_index(drop=True)
-        return df
-
-    df = prepareData(args.csv_dir)
-
-    # save to file
-    df.to_csv("master.csv", index=False)
+    df = pd.read_csv('master.csv')
 
     # path column is not part of the classes
     num_classes = len(df.columns[1:])
@@ -202,19 +184,36 @@ if __name__ == "__main__":
         help="File Name of .h5 file which will contain the weights and saved in model_dir",
     )
     parser.add_argument(
+        "--image_dir",
+        default="imgs/",
+        type=str,
+        help="Directory containing the images in sub-directories",
+    )
+    parser.add_argument(
+        "--image_format", default="png", type=str, help="File format of the images"
+    )
+    parser.add_argument("--input_height", default=240, type=int, help="Input height")
+    parser.add_argument("--input_width", default=320, type=int, help="Input width")
+    parser.add_argument(
+        "--input_channels",
+        default=3,
+        type=int,
+        help="Number of channels in input images",
+    )
+    parser.add_argument(
         "--ground_truth_file",
         default=None,
         type=str,
         help="The npy file containing the ground truth AU classes",
     )
     parser.add_argument(
-        "--data_file",
+        "--landmark_data_file",
         default=None,
         type=str,
         help="The npy file containing the input data",
     )
     parser.add_argument(
-        "--input_size", default=136, type=int, help="Input size for the model"
+        "--landmark_input_size", default=136, type=int, help="Input size for the model"
     )
     parser.add_argument(
         "--batch_size", default=16, type=int, help="Batch size for the model"
@@ -231,6 +230,9 @@ if __name__ == "__main__":
         default=0.20,
         type=float,
         help="Fraction of training image to use for validation during training",
+    )
+    parser.add_argument(
+        "--no_augment", dest="augment", action="store_false"
     )
 
     args = parser.parse_args()

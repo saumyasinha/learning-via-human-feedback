@@ -1,7 +1,7 @@
 import numpy as np
 from FaceClassifier.utils.utils import (
     ImageGenerator,
-    DataGenerator,
+    LandmarkDataGenerator,
     get_landmark_points,
 )
 import cv2

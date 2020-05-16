@@ -1,13 +1,25 @@
 import tensorflow as tf
 from keras import backend as K
-from keras.layers import (Activation, BatchNormalization, Conv2D,
-                          Conv2DTranspose, Dense, Dropout, Flatten, Input,
-                          Lambda, MaxPooling2D, Reshape)
+from keras.layers import (
+    Activation,
+    BatchNormalization,
+    Conv2D,
+    Conv2DTranspose,
+    Dense,
+    Dropout,
+    Flatten,
+    Input,
+    Lambda,
+    MaxPooling2D,
+    Reshape,
+)
 from keras.models import Model, Sequential
 import keras
 
+
 def BatchNorm():
     return BatchNormalization(momentum=0.95, epsilon=1e-5)
+
 
 class Resize(keras.layers.Layer):
     """ Custom Keras layer that resizes to a new size using interpolation.
@@ -20,7 +32,7 @@ class Resize(keras.layers.Layer):
       - keras.layers.Layer of size [?, new_size[0], new_size[1], depth]
     """
 
-    def __init__(self, new_size, method='bilinear', **kwargs):
+    def __init__(self, new_size, method="bilinear", **kwargs):
         self.new_size = new_size
         self.method = method
         super(Resize, self).__init__(**kwargs)
@@ -30,18 +42,21 @@ class Resize(keras.layers.Layer):
 
     def call(self, inputs, **kwargs):
         resized_height, resized_width = self.new_size
-        return tf.image.resize(images=inputs,
-                               size=[resized_height, resized_width],
-                               method=self.method,
-                               align_corners=True)
+        return tf.image.resize(
+            images=inputs,
+            size=[resized_height, resized_width],
+            method=self.method,
+            # align_corners=True,
+        )
 
     def compute_output_shape(self, input_shape):
         return tuple([None, self.new_size[0], self.new_size[1], input_shape[3]])
 
     def get_config(self):
         config = super(Resize, self).get_config()
-        config['new_size'] = self.new_size
+        config["new_size"] = self.new_size
         return config
+
 
 def vanilla_cnn(input_shape, num_classes, final_activation_fn="sigmoid"):
 
@@ -133,6 +148,8 @@ def sampling(args):
     epsilon = K.random_normal(shape=(batch, dim))
     return z_mean + K.exp(0.5 * z_log_var) * epsilon
 
+LATENT_DIM = 20
+INPUT_SHAPE = (240, 320, 3)
 
 def get_encoder(input_shape, latent_dim, padding="same"):
     inputs = Input(shape=input_shape)
@@ -182,7 +199,8 @@ def get_encoder(input_shape, latent_dim, padding="same"):
 
     # instantiate encoder model
     encoder = Model(inputs, [z_mean, z_log_var, z], name="encoder")
-    print('Encoder model summary \n',encoder.summary())
+    print("Encoder model summary")
+    encoder.summary()
     return encoder, shape
 
 
@@ -224,8 +242,7 @@ def get_decoder(latent_dim, shape, padding="same"):
         name="decoder_output",
     )(x)
 
-    # outputs = Lambda(lambda x: tf.image.resize(x, INPUT_SHAPE[:2]))(outputs)
-    outputs = Resize(new_size=INPUT_SHAPE[2:], method="bilinear")(outputs)
+    outputs = Resize(new_size=INPUT_SHAPE[:2], method="bilinear")(outputs)
 
     decoder = Model(latent_inputs, outputs, name="decoder")
     decoder.summary()
@@ -248,8 +265,6 @@ def get_vae(encoder, decoder, input_shape):
     return vae, vae_loss
 
 
-LATENT_DIM = 20
-INPUT_SHAPE = (240, 320, 3)
 ENCODER, DECONV_SHAPE = get_encoder(input_shape=INPUT_SHAPE, latent_dim=LATENT_DIM)
 DECODER = get_decoder(latent_dim=LATENT_DIM, shape=DECONV_SHAPE)
 VAE, VAE_LOSS = get_vae(ENCODER, DECODER, input_shape=INPUT_SHAPE)

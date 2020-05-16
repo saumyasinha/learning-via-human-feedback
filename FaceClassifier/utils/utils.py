@@ -27,7 +27,7 @@ def get_landmark_points(img, detector, predictor):
         return np.empty(0)
 
 
-class DataGenerator(Sequence):
+class LandmarkDataGenerator(Sequence):
     """
   Image generator inherited from keras.utils.Sequence to be used for dense network (landmarks).
   Args:
