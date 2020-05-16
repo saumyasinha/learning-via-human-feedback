@@ -4,11 +4,44 @@ from keras.layers import (Activation, BatchNormalization, Conv2D,
                           Conv2DTranspose, Dense, Dropout, Flatten, Input,
                           Lambda, MaxPooling2D, Reshape)
 from keras.models import Model, Sequential
-
+import keras
 
 def BatchNorm():
     return BatchNormalization(momentum=0.95, epsilon=1e-5)
 
+class Resize(keras.layers.Layer):
+    """ Custom Keras layer that resizes to a new size using interpolation.
+    Bypasses the use of Keras Lambda layer
+    Args:
+      - new_size: tuple, new size to which layer needs to be resized to. Must be (height, width)
+      - method: str, method of interpolation to be used. If None, defaults to bilinear.
+               Choose amongst 'bilinear', 'nearest', 'lanczos3', 'lanczos5', 'area', 'gaussian', 'mitchellcubic'
+    Returns:
+      - keras.layers.Layer of size [?, new_size[0], new_size[1], depth]
+    """
+
+    def __init__(self, new_size, method='bilinear', **kwargs):
+        self.new_size = new_size
+        self.method = method
+        super(Resize, self).__init__(**kwargs)
+
+    def build(self, input_shape):
+        super(Resize, self).build(input_shape)
+
+    def call(self, inputs, **kwargs):
+        resized_height, resized_width = self.new_size
+        return tf.image.resize(images=inputs,
+                               size=[resized_height, resized_width],
+                               method=self.method,
+                               align_corners=True)
+
+    def compute_output_shape(self, input_shape):
+        return tuple([None, self.new_size[0], self.new_size[1], input_shape[3]])
+
+    def get_config(self):
+        config = super(Resize, self).get_config()
+        config['new_size'] = self.new_size
+        return config
 
 def vanilla_cnn(input_shape, num_classes, final_activation_fn="sigmoid"):
 
@@ -149,7 +182,7 @@ def get_encoder(input_shape, latent_dim, padding="same"):
 
     # instantiate encoder model
     encoder = Model(inputs, [z_mean, z_log_var, z], name="encoder")
-    encoder.summary()
+    print('Encoder model summary \n',encoder.summary())
     return encoder, shape
 
 
@@ -191,7 +224,8 @@ def get_decoder(latent_dim, shape, padding="same"):
         name="decoder_output",
     )(x)
 
-    outputs = Lambda(lambda x: tf.image.resize(x, INPUT_SHAPE[:2]))(outputs)
+    # outputs = Lambda(lambda x: tf.image.resize(x, INPUT_SHAPE[:2]))(outputs)
+    outputs = Resize(new_size=INPUT_SHAPE[2:], method="bilinear")(outputs)
 
     decoder = Model(latent_inputs, outputs, name="decoder")
     decoder.summary()
