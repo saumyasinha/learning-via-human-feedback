@@ -76,7 +76,7 @@ def landmark_train(args):
 
 
 def cnn_train(args, custom_model):
-    df = pd.read_csv('master.csv')
+    df = pd.read_csv('data/master.csv')
 
     # path column is not part of the classes
     num_classes = len(df.columns[1:])

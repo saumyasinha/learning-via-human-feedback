@@ -270,17 +270,17 @@ DECODER = get_decoder(latent_dim=LATENT_DIM, shape=DECONV_SHAPE)
 VAE, VAE_LOSS = get_vae(ENCODER, DECODER, input_shape=INPUT_SHAPE)
 
 
-def vae_network(input_shape, latent_dim, num_classes, final_activation_fn="sigmoid"):
+def vae_network(input_shape, num_classes, final_activation_fn="sigmoid"):
     assert input_shape == INPUT_SHAPE
     inputs = Input(shape=input_shape)
     z = ENCODER(inputs)[2]
 
-    x = Dense(latent_dim)(z)
+    x = Dense(LATENT_DIM)(z)
     x = BatchNorm()(x)
     x = Activation("relu")(x)
     x = Dropout(0.4)(x)
 
-    x = Dense(latent_dim)(x)
+    x = Dense(LATENT_DIM)(x)
     x = BatchNorm()(x)
     x = Activation("relu")(x)
     x = Dropout(0.4)(x)
