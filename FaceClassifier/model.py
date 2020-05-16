@@ -148,8 +148,10 @@ def sampling(args):
     epsilon = K.random_normal(shape=(batch, dim))
     return z_mean + K.exp(0.5 * z_log_var) * epsilon
 
+
 LATENT_DIM = 20
 INPUT_SHAPE = (240, 320, 3)
+
 
 def get_encoder(input_shape, latent_dim, padding="same"):
     inputs = Input(shape=input_shape)
@@ -254,7 +256,7 @@ def get_vae(encoder, decoder, input_shape):
     z_mean, z_log_var, z = encoder(inputs)
     outputs = decoder(z)
     vae = Model(inputs, outputs, name="vae")
-    # get loss function
+    # get vae loss
     bce_loss = K.binary_crossentropy(K.flatten(inputs), K.flatten(outputs))
     bce_loss *= input_shape[0] * input_shape[1]
     # kl divergence from standard normal

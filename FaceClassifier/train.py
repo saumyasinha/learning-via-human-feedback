@@ -9,10 +9,11 @@ from keras.callbacks import ModelCheckpoint, ReduceLROnPlateau
 from keras.models import Model
 from keras.optimizers import Adam
 from keras.regularizers import l2
+from keras.utils import plot_model
 from sklearn.model_selection import train_test_split
 
-from model import VAE_LOSS, landmark_network, vae_network, vanilla_cnn
-from utils.utils import LandmarkDataGenerator, ImageGenerator
+from model import VAE, VAE_LOSS, landmark_network, vae_network, vanilla_cnn
+from utils.utils import ImageGenerator, LandmarkDataGenerator
 
 
 def landmark_train(args):
@@ -76,7 +77,7 @@ def landmark_train(args):
 
 
 def cnn_train(args, custom_model):
-    df = pd.read_csv('data/master.csv')
+    df = pd.read_csv("data/master.csv")
 
     # path column is not part of the classes
     num_classes = len(df.columns[1:])
@@ -139,11 +140,20 @@ def cnn_train(args, custom_model):
         final_activation_fn="sigmoid",
     )
 
-    adam = Adam(learning_rate=args.lr, clipnorm=1.0, clipvalue=0.5)
-    loss = "binarycrossentropy"
     if args.model == "vae":
-        loss = VAE_LOSS
-    model.compile(optimizer=adam, loss=loss, metrics=["accuracy"])
+        VAE.add_loss(VAE_LOSS)
+        VAE.compile(optimizer=Adam(learning_rate=args.lr))
+        VAE.summary()
+        plot_model(VAE, to_file="vae_cnn.png", show_shapes=True)
+        vae_history = VAE.fit_generator(
+            train_gen, validation_data=valid_gen, epochs=args.epochs, verbose=1,
+        )
+
+    model.compile(
+        optimizer=Adam(learning_rate=args.lr, clipnorm=1.0, clipvalue=0.5),
+        loss="binarycrossentropy",
+        metrics=["accuracy"],
+    )
 
     checkpoint = ModelCheckpoint(
         os.path.join(args.model_dir, args.model_name), verbose=1, save_best_only=True
@@ -231,9 +241,7 @@ if __name__ == "__main__":
         type=float,
         help="Fraction of training image to use for validation during training",
     )
-    parser.add_argument(
-        "--no_augment", dest="augment", action="store_false"
-    )
+    parser.add_argument("--no_augment", dest="augment", action="store_false")
 
     args = parser.parse_args()
 
