@@ -260,7 +260,6 @@ def get_vae(encoder, decoder, input_shape):
     def vae_loss_fn(y_true, y_pred):
         bce_loss = binary_crossentropy(K.flatten(y_true), K.flatten(y_pred))
         bce_loss *= input_shape[0] * input_shape[1]
-        # bce_loss = K.sum(bce_loss, axis=-1)
         # kl divergence from standard normal
         kl_loss = 1 + z_log_var - K.square(z_mean) - K.exp(z_log_var)
         kl_loss = K.sum(kl_loss, axis=-1)

@@ -85,13 +85,7 @@ def cnn_train(args, custom_model):
     num_classes = len(df.columns[1:])
 
     # split data into training set and validation set
-    X_train, X_val = train_test_split(
-        list(df.iloc[:, 0]), shuffle=True, test_size=args.test_size
-    )
-    validation_filename = f"{os.path.splitext(args.model_name)[0]}.txt"
-    with open(validation_filename, "w") as f:
-        f.write("Validation images: \n{}".format(X_val))
-    print(f"Saved list of validation images in {validation_filename}")
+    X_train, X_val = train_test_split(list(df.iloc[:, 0]), shuffle=True, test_size=args.test_size, random_state=42)
 
     AUGMENTATIONS = albumentations.Compose(
         [
@@ -135,29 +129,25 @@ def cnn_train(args, custom_model):
         shuffle=True,
     )
 
-    if args.model == "vae":
-        vae_ckpt = ModelCheckpoint(os.path.join(args.model_dir, 'vae_'+ args.model_name),
-                                   verbose=1,
-                                   save_best_only=True)
-        vae_decay_lr =  ReduceLROnPlateau(
-            monitor="val_loss", factor=0.8, patience=25, verbose=1
-        )
-        calls = [vae_ckpt, vae_decay_lr]
-        train_gen.self_supervised = True
-        valid_gen.self_supervised = True
-        VAE.compile(optimizer=Adam(learning_rate=args.lr), loss=VAE_LOSS)
-        VAE.summary()
-        # plot_model(VAE, to_file="vae_cnn.png", show_shapes=True)
-        vae_history = VAE.fit_generator(train_gen, validation_data=valid_gen, epochs=args.epochs, verbose=1, callbacks=calls)
-        train_gen.self_supervised = False
-        valid_gen.self_supervised = False
-
     # build the model
     model = custom_model(
         input_shape=(args.input_height, args.input_width, args.input_channels),
         num_classes=num_classes,
         final_activation_fn="sigmoid",
     )
+
+    if args.model == "vae":
+        train_gen.self_supervised = True
+        valid_gen.self_supervised = True
+        VAE.compile(optimizer=Adam(learning_rate=args.lr), loss=VAE_LOSS)
+        VAE.summary()
+        # plot_model(VAE, to_file="vae_cnn.png", show_shapes=True)
+        vae_history = VAE.fit_generator(
+            train_gen, validation_data=valid_gen, epochs=args.epochs, verbose=1,
+        )
+        train_gen.self_supervised = False
+        valid_gen.self_supervised = False
+
     model.compile(
         optimizer=Adam(learning_rate=args.lr, clipnorm=1.0, clipvalue=0.5),
         loss="binary_crossentropy",
