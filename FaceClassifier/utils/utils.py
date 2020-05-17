@@ -155,6 +155,8 @@ class ImageGenerator(Sequence):
         self.shuffle = shuffle
         self.to_fit = to_fit
         self.image_format = image_format
+        self.self_supervised = False
+
         if self.to_fit:
             self.on_epoch_end()
 
@@ -201,6 +203,8 @@ class ImageGenerator(Sequence):
             # label = to_categorical(label, num_classes=self.num_classes)
             y[i] = label
 
+        if self.self_supervised:
+            return X, X
         return X, y
 
     def __len__(self):

@@ -256,15 +256,17 @@ def get_vae(encoder, decoder, input_shape):
     z_mean, z_log_var, z = encoder(inputs)
     outputs = decoder(z)
     vae = Model(inputs, outputs, name="vae")
-    # get vae loss
-    bce_loss = K.binary_crossentropy(K.flatten(inputs), K.flatten(outputs))
-    bce_loss *= input_shape[0] * input_shape[1]
-    # kl divergence from standard normal
-    kl_loss = 1 + z_log_var - K.square(z_mean) - K.exp(z_log_var)
-    kl_loss = K.sum(kl_loss, axis=-1)
-    kl_loss *= -0.5
-    vae_loss = K.mean(bce_loss + kl_loss)
-    return vae, vae_loss
+    # get vae loss function
+    def vae_loss_fn(y_true, y_pred):
+        bce_loss = K.binary_crossentropy(K.flatten(y_true), K.flatten(y_pred))
+        bce_loss *= input_shape[0] * input_shape[1]
+        # kl divergence from standard normal
+        kl_loss = 1 + z_log_var - K.square(z_mean) - K.exp(z_log_var)
+        kl_loss = K.sum(kl_loss, axis=-1)
+        kl_loss *= -0.5
+        return K.mean(bce_loss + kl_loss)
+
+    return vae, vae_loss_fn
 
 
 ENCODER, DECONV_SHAPE = get_encoder(input_shape=INPUT_SHAPE, latent_dim=LATENT_DIM)

@@ -56,6 +56,8 @@ def landmark_train(args):
         final_activation_fn="sigmoid",
     )
 
+    model.summary()
+
     adam = Adam(learning_rate=args.lr, clipnorm=1.0, clipvalue=0.5)
     model.compile(optimizer=adam, loss="binary_crossentropy", metrics=["accuracy"])
 
@@ -141,17 +143,20 @@ def cnn_train(args, custom_model):
     )
 
     if args.model == "vae":
-        VAE.add_loss(VAE_LOSS)
-        VAE.compile(optimizer=Adam(learning_rate=args.lr))
+        train_gen.self_supervised = True
+        valid_gen.self_supervised = True
+        VAE.compile(optimizer=Adam(learning_rate=args.lr), loss=VAE_LOSS)
         VAE.summary()
-        plot_model(VAE, to_file="vae_cnn.png", show_shapes=True)
+        # plot_model(VAE, to_file="vae_cnn.png", show_shapes=True)
         vae_history = VAE.fit_generator(
             train_gen, validation_data=valid_gen, epochs=args.epochs, verbose=1,
         )
+        train_gen.self_supervised = False
+        valid_gen.self_supervised = False
 
     model.compile(
         optimizer=Adam(learning_rate=args.lr, clipnorm=1.0, clipvalue=0.5),
-        loss="binarycrossentropy",
+        loss="binary_crossentropy",
         metrics=["accuracy"],
     )
 
