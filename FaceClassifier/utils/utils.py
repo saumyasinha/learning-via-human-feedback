@@ -39,7 +39,6 @@ class LandmarkDataGenerator(Sequence):
   - input_shape: int, specifying shape that matches with the model's input shape
   - shuffle: bool, set to True to shuffle the dataset
   - to_fit: bool, set to True during training, set to False during prediction.
-
   Returns:
   - X: images to be used as input to the model. Number of images generated=batch_size
   - y: ground truth labels (one-hot encoded) corresponding to X

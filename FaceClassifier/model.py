@@ -133,10 +133,8 @@ def vanilla_cnn(input_shape, num_classes, final_activation_fn="sigmoid"):
 # z = z_mean + sqrt(var) * epsilon
 def sampling(args):
     """Reparameterization trick by sampling from an isotropic unit Gaussian.
-
     # Arguments
         args (tensor): mean and log of variance of Q(z|X)
-
     # Returns
         z (tensor): sampled latent vector
     """
