@@ -1,6 +1,7 @@
 import tensorflow as tf
 from keras import backend as K
 from keras.layers import (
+    Layer,
     Activation,
     BatchNormalization,
     Conv2D,
@@ -14,14 +15,13 @@ from keras.layers import (
     Reshape,
 )
 from keras.models import Model, Sequential
-import keras
-
+from keras.losses import binary_crossentropy
 
 def BatchNorm():
     return BatchNormalization(momentum=0.95, epsilon=1e-5)
 
 
-class Resize(keras.layers.Layer):
+class Resize(Layer):
     """ Custom Keras layer that resizes to a new size using interpolation.
     Bypasses the use of Keras Lambda layer
     Args:
@@ -133,8 +133,10 @@ def vanilla_cnn(input_shape, num_classes, final_activation_fn="sigmoid"):
 # z = z_mean + sqrt(var) * epsilon
 def sampling(args):
     """Reparameterization trick by sampling from an isotropic unit Gaussian.
+
     # Arguments
         args (tensor): mean and log of variance of Q(z|X)
+
     # Returns
         z (tensor): sampled latent vector
     """
@@ -256,13 +258,14 @@ def get_vae(encoder, decoder, input_shape):
     vae = Model(inputs, outputs, name="vae")
     # get vae loss function
     def vae_loss_fn(y_true, y_pred):
-        bce_loss = K.binary_crossentropy(K.flatten(y_true), K.flatten(y_pred))
+        bce_loss = binary_crossentropy(K.flatten(y_true), K.flatten(y_pred))
         bce_loss *= input_shape[0] * input_shape[1]
+        # bce_loss = K.sum(bce_loss, axis=-1)
         # kl divergence from standard normal
         kl_loss = 1 + z_log_var - K.square(z_mean) - K.exp(z_log_var)
         kl_loss = K.sum(kl_loss, axis=-1)
         kl_loss *= -0.5
-        return K.mean(bce_loss + kl_loss)
+        return K.mean(bce_loss + kl_loss, axis=-1)
 
     return vae, vae_loss_fn
 
