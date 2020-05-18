@@ -85,9 +85,7 @@ def cnn_train(args, custom_model):
     num_classes = len(df.columns[1:])
 
     # split data into training set and validation set
-    X_train, X_val = train_test_split(
-        list(df.iloc[:, 0]), shuffle=True, test_size=args.test_size, random_state=42
-    )
+    X_train, X_val = train_test_split(list(df.iloc[:, 0]), shuffle=True, test_size=args.test_size, random_state=42)
 
     AUGMENTATIONS = albumentations.Compose(
         [
@@ -146,6 +144,10 @@ def cnn_train(args, custom_model):
         VAE.summary()
         # plot_model(VAE, to_file="vae_cnn.png", show_shapes=True)
         vae_history = VAE.fit_generator(train_gen, validation_data=valid_gen, epochs=args.epochs, verbose=1, callbacks=calls)
+
+        # freeze the encoder weights
+        for layer in VAE.layers[1].layers:
+            layer.trainable = False
         train_gen.self_supervised = False
         valid_gen.self_supervised = False
 
