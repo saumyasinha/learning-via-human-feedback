@@ -17,6 +17,7 @@ from keras.layers import (
 from keras.models import Model, Sequential
 from keras.losses import binary_crossentropy
 
+
 def BatchNorm():
     return BatchNormalization(momentum=0.95, epsilon=1e-5)
 
@@ -201,8 +202,6 @@ def get_encoder(input_shape, latent_dim, padding="same"):
 
     # instantiate encoder model
     encoder = Model(inputs, [z_mean, z_log_var, z], name="encoder")
-    print("Encoder model summary")
-    encoder.summary()
     return encoder, shape
 
 
@@ -247,7 +246,6 @@ def get_decoder(latent_dim, shape, padding="same"):
     outputs = Resize(new_size=INPUT_SHAPE[:2], method="bilinear")(outputs)
 
     decoder = Model(latent_inputs, outputs, name="decoder")
-    decoder.summary()
     return decoder
 
 

@@ -85,7 +85,9 @@ def cnn_train(args, custom_model):
     num_classes = len(df.columns[1:])
 
     # split data into training set and validation set
-    X_train, X_val = train_test_split(list(df.iloc[:, 0]), shuffle=True, test_size=args.test_size, random_state=42)
+    X_train, X_val = train_test_split(
+        list(df.iloc[:, 0]), shuffle=True, test_size=args.test_size, random_state=42
+    )
 
     AUGMENTATIONS = albumentations.Compose(
         [
