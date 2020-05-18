@@ -1,5 +1,5 @@
 import numpy as np
-from FaceClassifier.utils.utils import (
+from utils.utils import (
     ImageGenerator,
     LandmarkDataGenerator,
     get_landmark_points,
@@ -48,7 +48,7 @@ def prediction_on_frame(
         img = preprocess(
             frame, resize_dims=(model.input_shape[1], model.input_shape[2])
         )
-        prediction = list(model.predict(img).flatten())
+        return list(model.predict(img).flatten())
     else:  # use the landmarks model
         img = cv2.resize(frame, (320, 240))
         landmarks = get_landmark_points(img, detector, predictor)
