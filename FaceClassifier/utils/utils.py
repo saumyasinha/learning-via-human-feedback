@@ -186,7 +186,8 @@ class ImageGenerator(Sequence):
             )
             # if self.num_channels<3:
             # img = self.grayscale(img)
-            img = self.normalize_img(img)
+            # img = self.normalize_img(img)
+            img = img / 255
             # replace any NaNs by 1
             img = np.nan_to_num(img, nan=np.float64(1.0))
             if self.num_channels < 3:
