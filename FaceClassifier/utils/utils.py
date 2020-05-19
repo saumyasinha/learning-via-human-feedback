@@ -204,8 +204,6 @@ class ImageGenerator(Sequence):
             # label = to_categorical(label, num_classes=self.num_classes)
             y[i] = label
 
-        if self.self_supervised:
-            return X, X
         return X, y
 
     def __len__(self):
@@ -216,6 +214,8 @@ class ImageGenerator(Sequence):
 
         # Generate data
         X, y = self._data_generator(indices)
+        if self.self_supervised:
+            return X, X
         return X, y
 
     def on_epoch_end(self):
