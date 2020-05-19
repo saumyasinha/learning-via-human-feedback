@@ -15,7 +15,7 @@ from keras.layers import (
     Reshape,
 )
 from keras.models import Model, Sequential
-from keras.losses import binary_crossentropy
+from keras.losses import binary_crossentropy, mse
 
 
 def BatchNorm():
@@ -239,7 +239,7 @@ def get_vae(encoder, decoder, input_shape):
     vae = Model(inputs, outputs, name="vae")
     # get vae loss function
     def vae_loss_fn(y_true, y_pred):
-        bce_loss = binary_crossentropy(K.flatten(y_true), K.flatten(y_pred))
+        bce_loss = mse(K.flatten(y_true), K.flatten(y_pred))
         bce_loss *= input_shape[0] * input_shape[1]
         # kl divergence from standard normal
         kl_loss = 1 + z_log_var - K.square(z_mean) - K.exp(z_log_var)
