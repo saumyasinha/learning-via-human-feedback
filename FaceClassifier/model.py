@@ -16,48 +16,7 @@ from keras.layers import (
 )
 from keras.models import Model, Sequential
 from keras.losses import binary_crossentropy, mse
-
-
-def BatchNorm():
-    return BatchNormalization(momentum=0.95, epsilon=1e-5)
-
-
-class Resize(Layer):
-    """ Custom Keras layer that resizes to a new size using interpolation.
-    Bypasses the use of Keras Lambda layer
-    Args:
-      - new_size: tuple, new size to which layer needs to be resized to. Must be (height, width)
-      - method: str, method of interpolation to be used. If None, defaults to bilinear.
-               Choose amongst 'bilinear', 'nearest', 'lanczos3', 'lanczos5', 'area', 'gaussian', 'mitchellcubic'
-    Returns:
-      - keras.layers.Layer of size [?, new_size[0], new_size[1], depth]
-    """
-
-    def __init__(self, new_size, method="bilinear", **kwargs):
-        self.new_size = new_size
-        self.method = method
-        super(Resize, self).__init__(**kwargs)
-
-    def build(self, input_shape):
-        super(Resize, self).build(input_shape)
-
-    def call(self, inputs, **kwargs):
-        resized_height, resized_width = self.new_size
-        return tf.image.resize(
-            images=inputs,
-            size=[resized_height, resized_width],
-            method=self.method,
-            # align_corners=True,
-        )
-
-    def compute_output_shape(self, input_shape):
-        return tuple([None, self.new_size[0], self.new_size[1], input_shape[3]])
-
-    def get_config(self):
-        config = super(Resize, self).get_config()
-        config["new_size"] = self.new_size
-        return config
-
+from utils.utils import Resize
 
 def vanilla_cnn(input_shape, num_classes, final_activation_fn="sigmoid"):
 
