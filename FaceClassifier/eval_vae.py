@@ -4,7 +4,8 @@ import cv2
 import matplotlib.pyplot as plt
 import numpy as np
 from keras.models import load_model
-from model import Resize, VAE_LOSS
+from utils.utils import Resize
+from model import VAE_LOSS
 
 from predict import prediction_on_frame
 
