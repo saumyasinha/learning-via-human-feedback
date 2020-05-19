@@ -1,14 +1,14 @@
-from keras.utils import Sequence
-import numpy as np
-from imutils import face_utils
-import dlib
-import cv2
-from keras.utils import to_categorical
-from keras.layers import Layer
-from keras.callbacks import Callback
-import keras.backend as K
-import tensorflow as tf
 import os
+
+import cv2
+import dlib
+import keras.backend as K
+import numpy as np
+import tensorflow as tf
+from imutils import face_utils
+from keras.callbacks import Callback
+from keras.layers import BatchNormalization, Layer
+from keras.utils import Sequence, to_categorical
 
 
 def BatchNorm():
@@ -51,14 +51,16 @@ class Resize(Layer):
         config["new_size"] = self.new_size
         return config
 
+
 class AnnealingCallback(Callback):
     def __init__(self, weight):
         self.weight = weight
+
     def on_epoch_end(self, epoch, logs={}):
-        if epoch > klstart :
-            new_weight = min(K.get_value(self.weight) + (1./ annealtime), 1.)
+        if epoch > klstart:
+            new_weight = min(K.get_value(self.weight) + (1.0 / annealtime), 1.0)
             K.set_value(self.weight, new_weight)
-        print ("Current KL Weight is " + str(K.get_value(self.weight)))
+        print("Current KL Weight is " + str(K.get_value(self.weight)))
 
 
 def get_landmark_points(img, detector, predictor):

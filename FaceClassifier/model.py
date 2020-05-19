@@ -3,7 +3,6 @@ from keras import backend as K
 from keras.layers import (
     Layer,
     Activation,
-    BatchNormalization,
     Conv2D,
     Conv2DTranspose,
     Dense,
@@ -16,7 +15,8 @@ from keras.layers import (
 )
 from keras.models import Model, Sequential
 from keras.losses import binary_crossentropy, mse
-from utils.utils import Resize
+from utils.utils import Resize, BatchNorm
+
 
 def vanilla_cnn(input_shape, num_classes, final_activation_fn="sigmoid"):
 
