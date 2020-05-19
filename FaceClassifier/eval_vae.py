@@ -46,16 +46,23 @@ for filename in os.listdir(folder):
         c_encoded = c_encoder.predict(frame)
         c_decoded = decoder.predict(c_encoded[2])
         m_decoded = vae_model.predict(frame)
-        break  # just do one for now
 
-plt.imshow(np.rint(frame[0] * 255).astype(int))
-plt.show()
+        fig = plt.figure()
+        ax1 = fig.add_subplot(221)
+        ax2 = fig.add_subplot(222)
+        ax3 = fig.add_subplot(223)
+        ax4 = fig.add_subplot(224)
 
-plt.imshow(np.rint(m_decoded[0] * 255).astype(int))
-plt.show()
+        ax1.title.set_text('Original')
+        ax1.imshow(np.rint(frame[0] * 255).astype(int))
 
-plt.imshow(np.rint(decoded[0] * 255).astype(int))
-plt.show()
+        ax2.title.set_text('VAE e2e')
+        ax2.imshow(np.rint(m_decoded[0] * 255).astype(int))
 
-plt.imshow(np.rint(c_decoded[0] * 255).astype(int))
-plt.show()
+        ax3.title.set_text('VAE separate')
+        ax3.imshow(np.rint(decoded[0] * 255).astype(int))
+
+        ax4.title.set_text('VAE modified encoder')
+        ax4.imshow(np.rint(c_decoded[0] * 255).astype(int))
+
+        plt.show()
