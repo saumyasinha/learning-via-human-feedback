@@ -29,8 +29,11 @@ c_encoder_weights = c_encoder.get_weights()
 #     assert (encoder_weights[ind] == w).all()
 
 
-# z_sample = np.random.normal(loc=0, scale=1, size=(1, 20))
-# figure = DECODER.predict(z_sample)[0]
+# z_sample = np.random.normal(loc=0, scale=1, size=(1, 50))
+# frame = decoder.predict(z_sample)
+# plt.imshow(np.rint(frame[0] * 255).astype(int))
+# plt.show()
+
 folder = "imgs/0bebd5c1-ea42-4c80-a311-b5f9622accdb"
 preds = []
 for filename in os.listdir(folder):
@@ -40,6 +43,8 @@ for filename in os.listdir(folder):
         frame = np.expand_dims(frame, axis=0)
         encoded = encoder.predict(frame)
         decoded = decoder.predict(encoded[2])
+        c_encoded = c_encoder.predict(frame)
+        c_decoded = decoder.predict(c_encoded[2])
         m_decoded = vae_model.predict(frame)
         break  # just do one for now
 
@@ -50,4 +55,7 @@ plt.imshow(np.rint(m_decoded[0] * 255).astype(int))
 plt.show()
 
 plt.imshow(np.rint(decoded[0] * 255).astype(int))
+plt.show()
+
+plt.imshow(np.rint(c_decoded[0] * 255).astype(int))
 plt.show()
