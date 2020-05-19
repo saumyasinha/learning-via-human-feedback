@@ -85,7 +85,9 @@ def cnn_train(args, custom_model):
     num_classes = len(df.columns[1:])
 
     # split data into training set and validation set
-    X_train, X_val = train_test_split(list(df.iloc[:, 0]), shuffle=True, test_size=args.test_size, random_state=42)
+    X_train, X_val = train_test_split(
+        list(df.iloc[:, 0]), shuffle=True, test_size=args.test_size, random_state=42
+    )
 
     AUGMENTATIONS = albumentations.Compose(
         [
@@ -130,20 +132,30 @@ def cnn_train(args, custom_model):
     )
 
     if args.model == "vae":
-        vae_ckpt = ModelCheckpoint(os.path.join(args.model_dir, 'vae_'+ args.model_name),
-                                   verbose=1,
-                                   save_best_only=True)
-        vae_decay_lr =  ReduceLROnPlateau(
+        vae_ckpt = ModelCheckpoint(
+            os.path.join(args.model_dir, "vae_" + args.model_name),
+            verbose=1,
+            save_best_only=True,
+        )
+        vae_decay_lr = ReduceLROnPlateau(
             monitor="val_loss", factor=0.8, patience=25, verbose=1
         )
         calls = [vae_ckpt, vae_decay_lr]
         train_gen.self_supervised = True
         valid_gen.self_supervised = True
-        VAE.compile(optimizer=Adam(learning_rate=args.lr, clipnorm=1.0, clipvalue=0.5),
-                    loss=VAE_LOSS)
+        VAE.compile(
+            optimizer=Adam(learning_rate=args.lr, clipnorm=1.0, clipvalue=0.5),
+            loss=VAE_LOSS,
+        )
         VAE.summary()
         # plot_model(VAE, to_file="vae_cnn.png", show_shapes=True)
-        vae_history = VAE.fit_generator(train_gen, validation_data=valid_gen, epochs=args.epochs, verbose=1, callbacks=calls)
+        vae_history = VAE.fit_generator(
+            train_gen,
+            validation_data=valid_gen,
+            epochs=args.epochs,
+            verbose=1,
+            callbacks=calls,
+        )
 
         # freeze the encoder weights
         for layer in VAE.layers[1].layers:
