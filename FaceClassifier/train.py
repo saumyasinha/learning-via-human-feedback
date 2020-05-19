@@ -157,9 +157,6 @@ def cnn_train(args, custom_model):
             callbacks=calls,
         )
 
-        # freeze the encoder weights
-        for layer in VAE.layers[1].layers:
-            layer.trainable = False
         train_gen.self_supervised = False
         valid_gen.self_supervised = False
 
@@ -169,6 +166,8 @@ def cnn_train(args, custom_model):
         num_classes=num_classes,
         final_activation_fn="sigmoid",
     )
+    # freeze the encoder weights
+    model.get_layer("encoder").trainable = False
 
     model.compile(
         optimizer=Adam(learning_rate=args.lr, clipnorm=1.0, clipvalue=0.5),
