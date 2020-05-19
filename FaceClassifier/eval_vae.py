@@ -9,7 +9,7 @@ from model import VAE_LOSS
 
 from predict import prediction_on_frame
 
-model_name = "may18_vae"
+model_name = "may19_vae"
 vae_model = load_model(
     f"vae_weights/vae_{model_name}.h5",
     custom_objects={"Resize": Resize, "vae_loss_fn": VAE_LOSS},
@@ -25,7 +25,6 @@ encoder = vae_model.get_layer("encoder")
 encoder_weights = encoder.get_weights()
 c_encoder = vae_classifier.get_layer("encoder")
 c_encoder_weights = c_encoder.get_weights()
-# TODO: encoder weights not frozen
 # for ind, w in enumerate(c_encoder_weights):
 #     assert (encoder_weights[ind] == w).all()
 
@@ -67,3 +66,4 @@ for filename in os.listdir(folder):
         ax4.imshow(np.rint(c_decoded[0] * 255).astype(int))
 
         plt.show()
+        break
