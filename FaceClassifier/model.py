@@ -196,6 +196,11 @@ def get_vae(encoder, decoder):
     z_mean, z_log_var, z = encoder(inputs)
     outputs = decoder(z)
     vae = Model(inputs, outputs, name="vae")
+
+    # add metrics to keep track of average z
+    for idx in range(z.shape[1]):
+        vae.add_metric(z[:, idx], name=f"avg_z_{idx}", aggregation="mean")
+
     # get vae loss function
     def vae_loss_fn(y_true, y_pred):
         bce_loss = binary_crossentropy(K.flatten(y_true), K.flatten(y_pred))
@@ -208,7 +213,8 @@ def get_vae(encoder, decoder):
 
     return vae, vae_loss_fn
 
-def get_vae_network(num_classes, final_activation_fn="sigmoid"):
+
+def vae_network(num_classes, final_activation_fn="sigmoid"):
     inputs = Input(shape=INPUT_SHAPE)
     z = ENCODER(inputs)[2]
 
@@ -226,9 +232,11 @@ def get_vae_network(num_classes, final_activation_fn="sigmoid"):
     outputs = Activation(final_activation_fn)(x)
     return Model(inputs, outputs, name="vae_network")
 
+
 ENCODER, DECONV_SHAPE = get_encoder()
 DECODER = get_decoder(shape=DECONV_SHAPE)
 VAE, VAE_LOSS = get_vae(ENCODER, DECODER)
+
 
 def landmark_network(input_shape, num_classes, final_activation_fn="sigmoid"):
 
