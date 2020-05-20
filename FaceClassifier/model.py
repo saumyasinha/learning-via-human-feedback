@@ -218,6 +218,7 @@ def vae_network(num_classes, final_activation_fn="sigmoid"):
     inputs = Input(shape=INPUT_SHAPE)
     z = ENCODER(inputs)[2]
 
+    # TODO: separate this to different layer for fully detached execution
     x = Dense(LATENT_DIM)(z)
     x = BatchNorm()(x)
     x = Activation("relu")(x)
