@@ -161,10 +161,7 @@ def cnn_train(args, custom_model):
         valid_gen.self_supervised = False
 
     # build the model
-    model = custom_model(
-        num_classes=num_classes,
-        final_activation_fn="sigmoid",
-    )
+    model = custom_model(num_classes=num_classes, final_activation_fn="sigmoid")
     # freeze the encoder weights
     model.get_layer("encoder").trainable = False
 

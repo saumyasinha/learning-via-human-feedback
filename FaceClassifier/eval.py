@@ -72,13 +72,67 @@ valid_gen = ImageGenerator(
     shuffle=True,
 )
 
-n_batch = 1000
-_, _, z = encoder.predict_generator(valid_gen, n_batch)
-train_z_mean = np.mean(z, axis=0)
-
+# n_batch = 1000
+# _, _, z = encoder.predict_generator(valid_gen, n_batch)
+# train_z_mean = np.mean(z, axis=0)
+# print(train_z_mean)
+train_z_mean = np.array(
+    [
+        0.02873915,
+        -0.03757364,
+        -0.18720372,
+        0.02146574,
+        0.21144809,
+        -0.06107251,
+        -0.02077978,
+        -0.09831361,
+        -0.00233703,
+        0.02472817,
+        0.01851729,
+        -0.08540793,
+        -0.00896718,
+        0.11292063,
+        -0.10131415,
+        0.12061853,
+        -0.00947284,
+        -0.9389922,
+        -0.01437521,
+        0.10037095,
+        0.17108364,
+        -0.02416838,
+        -0.02745124,
+        -0.06421229,
+        0.01934998,
+        0.00115275,
+        0.02176926,
+        0.09721659,
+        0.23399407,
+        -0.02147517,
+        0.01799874,
+        0.05654962,
+        0.0513767,
+        -0.09091707,
+        0.0923245,
+        -0.02486692,
+        0.11765029,
+        -0.04970305,
+        -0.05292111,
+        0.16274576,
+        -0.51810914,
+        0.13472795,
+        0.01017204,
+        0.0192815,
+        0.07664829,
+        -0.12937498,
+        -0.03471367,
+        0.08723726,
+        0.03432051,
+        -0.13011713,
+    ]
+)
 
 # folder = "imgs/0bebd5c1-ea42-4c80-a311-b5f9622accdb"
-folder = "au_data/au_12"
+folder = "au_data/au_25"
 frames = []
 for filename in os.listdir(folder):
     frame = cv2.imread(os.path.join(folder, filename))
@@ -110,3 +164,6 @@ print(f"max_idx_preds: {max_idx_preds}")
 
 orig_max_idx_preds = [au_names[p.index(max(p))] for p in orig_preds]
 print(f"original max_idx_preds: {orig_max_idx_preds}")
+import ipdb
+
+ipdb.set_trace()
