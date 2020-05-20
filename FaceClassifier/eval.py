@@ -13,7 +13,6 @@ from predict import prediction_on_frame
 from utils.utils import ImageGenerator, Resize
 
 
-
 au_names = [
     "Unilateral_RAU14",
     "AU17",
@@ -48,7 +47,6 @@ encoder = vae_model.get_layer("encoder")
 encoder_weights = encoder.get_weights()
 c_encoder = vae_classifier.get_layer("encoder")
 c_encoder_weights = c_encoder.get_weights()
-vae_classifier.get_layer("")
 
 # find mean z over a training samples
 df = pd.read_csv("data/master.csv")
@@ -78,7 +76,6 @@ n_batch = 10
 _, _, z = encoder.predict_generator(valid_gen, n_batch)
 train_z_mean = np.mean(z, axis=0)
 
-
 # z_sample = np.random.normal(loc=0, scale=1, size=(1, 50))
 # frame = decoder.predict(z_sample)
 # plt.imshow(np.rint(frame[0] * 255).astype(int))
@@ -98,11 +95,13 @@ domain_z_mean = np.mean(z, axis=0)
 
 z_mean_diff = train_z_mean - domain_z_mean
 
+classifier = vae_classifier.get_layer("classifier")
+
 for idx, frame in enumerate(frames):
     encoded = encoder.predict(np.expand_dims(frame, axis=0))
     modified_input = encoded[2] - np.expand_dims(z_mean_diff, axis=0)
     decoded = decoder.predict(modified_input)
-    preds = vae_classifier.predict(modified_input)
+    preds = classifier.predict(modified_input)
     max_idx_preds = [au_names[p.index(max(p))] for p in preds]
     print(max_idx_preds)
 

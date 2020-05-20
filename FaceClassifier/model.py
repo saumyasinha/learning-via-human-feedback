@@ -214,12 +214,10 @@ def get_vae(encoder, decoder):
     return vae, vae_loss_fn
 
 
-def vae_network(num_classes, final_activation_fn="sigmoid"):
-    inputs = Input(shape=INPUT_SHAPE)
-    z = ENCODER(inputs)[2]
+def get_classifier(num_classes):
+    inputs = Input(shape=(LATENT_DIM,))
 
-    # TODO: separate this to different layer for fully detached execution
-    x = Dense(LATENT_DIM)(z)
+    x = Dense(LATENT_DIM)(inputs)
     x = BatchNorm()(x)
     x = Activation("relu")(x)
     x = Dropout(0.4)(x)
@@ -228,9 +226,17 @@ def vae_network(num_classes, final_activation_fn="sigmoid"):
     x = BatchNorm()(x)
     x = Activation("relu")(x)
     x = Dropout(0.4)(x)
+    outputs = Activation("sigmoid")(x)
+    return Model(inputs, outputs, name="classifier")
 
-    x = Dense(num_classes)(x)
-    outputs = Activation(final_activation_fn)(x)
+
+def vae_network(num_classes, final_activation_fn="sigmoid"):
+    inputs = Input(shape=INPUT_SHAPE)
+    z = ENCODER(inputs)[2]
+
+    classifier = get_classifier(num_classes)
+
+    outputs = classifier(z)
     return Model(inputs, outputs, name="vae_network")
 
 
