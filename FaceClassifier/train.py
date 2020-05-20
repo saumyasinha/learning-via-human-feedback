@@ -162,7 +162,6 @@ def cnn_train(args, custom_model):
 
     # build the model
     model = custom_model(
-        input_shape=(args.input_height, args.input_width, args.input_channels),
         num_classes=num_classes,
         final_activation_fn="sigmoid",
     )
