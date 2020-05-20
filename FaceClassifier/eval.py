@@ -31,7 +31,7 @@ au_names = [
     "Neutral",
 ]
 
-model_name = "may19_vae"
+model_name = "may20_vae"
 vae_model = load_model(
     f"vae_weights/vae_{model_name}.h5",
     custom_objects={"Resize": Resize, "vae_loss_fn": VAE_LOSS},
@@ -72,16 +72,13 @@ valid_gen = ImageGenerator(
     shuffle=True,
 )
 
-n_batch = 10
+n_batch = 1000
 _, _, z = encoder.predict_generator(valid_gen, n_batch)
 train_z_mean = np.mean(z, axis=0)
 
-# z_sample = np.random.normal(loc=0, scale=1, size=(1, 50))
-# frame = decoder.predict(z_sample)
-# plt.imshow(np.rint(frame[0] * 255).astype(int))
-# plt.show()
 
-folder = "imgs/0bebd5c1-ea42-4c80-a311-b5f9622accdb"
+# folder = "imgs/0bebd5c1-ea42-4c80-a311-b5f9622accdb"
+folder = "au_data/au_12"
 frames = []
 for filename in os.listdir(folder):
     frame = cv2.imread(os.path.join(folder, filename))
@@ -93,35 +90,23 @@ _, _, z = encoder.predict(frames)
 # Just take the mean of all frames (could use first n frames or rolling mean)
 domain_z_mean = np.mean(z, axis=0)
 
-z_mean_diff = train_z_mean - domain_z_mean
+z_mean_diff = domain_z_mean - train_z_mean
 
 classifier = vae_classifier.get_layer("classifier")
 
+orig_preds = []
+preds = []
 for idx, frame in enumerate(frames):
     encoded = encoder.predict(np.expand_dims(frame, axis=0))
     modified_input = encoded[2] - np.expand_dims(z_mean_diff, axis=0)
     decoded = decoder.predict(modified_input)
-    preds = classifier.predict(modified_input)
-    max_idx_preds = [au_names[p.index(max(p))] for p in preds]
-    print(max_idx_preds)
+    class_pred = classifier.predict(modified_input)
+    orig_pred = classifier.predict(encoded[2])
+    preds.append(class_pred[0].tolist())
+    orig_preds.append(orig_pred[0].tolist())
 
-    fig = plt.figure()
-    ax1 = fig.add_subplot(221)
-    ax2 = fig.add_subplot(222)
-    ax3 = fig.add_subplot(223)
-    ax4 = fig.add_subplot(224)
+max_idx_preds = [au_names[p.index(max(p))] for p in preds]
+print(f"max_idx_preds: {max_idx_preds}")
 
-    ax1.title.set_text("Original")
-    ax1.imshow(np.rint(frame[0] * 255).astype(int))
-
-    # ax2.title.set_text("VAE e2e")
-    # ax2.imshow(np.rint(m_decoded[0] * 255).astype(int))
-
-    ax3.title.set_text("VAE separate")
-    ax3.imshow(np.rint(decoded[0] * 255).astype(int))
-
-    # ax4.title.set_text("VAE modified encoder")
-    # ax4.imshow(np.rint(c_decoded[0] * 255).astype(int))
-
-    plt.show()
-    break
+orig_max_idx_preds = [au_names[p.index(max(p))] for p in orig_preds]
+print(f"original max_idx_preds: {orig_max_idx_preds}")
