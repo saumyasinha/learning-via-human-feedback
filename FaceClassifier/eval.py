@@ -131,8 +131,8 @@ train_z_mean = np.array(
     ]
 )
 
-# folder = "imgs/0bebd5c1-ea42-4c80-a311-b5f9622accdb"
-folder = "au_data/au_25"
+folder = "imgs/0bebd5c1-ea42-4c80-a311-b5f9622accdb"
+# folder = "au_data/au_12"
 frames = []
 for filename in os.listdir(folder):
     frame = cv2.imread(os.path.join(folder, filename))
