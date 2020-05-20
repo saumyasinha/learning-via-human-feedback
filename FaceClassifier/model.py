@@ -199,7 +199,7 @@ def get_vae(encoder, decoder):
 
     # add metrics to keep track of average z
     for idx in range(z.shape[1]):
-        vae.add_metric(z[:, idx], name=f"avg_z_{idx}", aggregation="mean")
+        vae.add_metric(z[:, idx], name=f"avg_z_{idx}")
 
     # get vae loss function
     def vae_loss_fn(y_true, y_pred):

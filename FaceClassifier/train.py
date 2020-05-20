@@ -153,7 +153,7 @@ def cnn_train(args, custom_model):
             train_gen,
             validation_data=valid_gen,
             epochs=args.epochs,
-            verbose=1,
+            verbose=0,
             callbacks=calls,
         )
 
