@@ -190,7 +190,7 @@ def get_decoder(shape, padding="same"):
     decoder = Model(latent_inputs, outputs, name="decoder")
     return decoder
 
-
+weight = K.variable(0.)
 def get_vae(encoder, decoder):
     inputs = Input(shape=INPUT_SHAPE)
     z_mean, z_log_var, z = encoder(inputs)
@@ -202,14 +202,14 @@ def get_vae(encoder, decoder):
         vae.add_metric(z[:, idx], name=f"avg_z_{idx}")
 
     # get vae loss function
-    def vae_loss_fn(y_true, y_pred):
-        bce_loss = binary_crossentropy(K.flatten(y_true), K.flatten(y_pred))
+    def vae_loss_fn(y_true, y_pred, weight=weight):
+        bce_loss = mse(K.flatten(y_true), K.flatten(y_pred))
         bce_loss *= INPUT_SHAPE[0] * INPUT_SHAPE[1]
         # kl divergence from standard normal
         kl_loss = 1 + z_log_var - K.square(z_mean) - K.exp(z_log_var)
         kl_loss = K.sum(kl_loss, axis=-1)
         kl_loss *= -0.5
-        return K.mean(bce_loss + kl_loss, axis=-1)
+        return K.mean(bce_loss + weight*kl_loss, axis=-1)
 
     return vae, vae_loss_fn
 
@@ -243,7 +243,7 @@ def vae_network(num_classes, final_activation_fn="sigmoid"):
 ENCODER, DECONV_SHAPE = get_encoder()
 DECODER = get_decoder(shape=DECONV_SHAPE)
 VAE, VAE_LOSS = get_vae(ENCODER, DECODER)
-VAE.load_weights("vae_weights/vae_may19_vae.h5")
+# VAE.load_weights("vae_weights/vae_may19_vae.h5")
 
 
 def landmark_network(input_shape, num_classes, final_activation_fn="sigmoid"):

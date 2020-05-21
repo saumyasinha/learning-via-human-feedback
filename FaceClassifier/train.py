@@ -12,8 +12,8 @@ from keras.regularizers import l2
 from keras.utils import plot_model
 from sklearn.model_selection import train_test_split
 
-from model import VAE, VAE_LOSS, landmark_network, vae_network, vanilla_cnn
-from utils.utils import ImageGenerator, LandmarkDataGenerator
+from model import VAE, VAE_LOSS, landmark_network, vae_network, vanilla_cnn, weight
+from utils.utils import ImageGenerator, LandmarkDataGenerator, AnnealingCallback
 
 
 def landmark_train(args):
@@ -132,6 +132,7 @@ def cnn_train(args, custom_model):
     )
 
     if args.model == "vae":
+
         vae_ckpt = ModelCheckpoint(
             os.path.join(args.model_dir, "vae_" + args.model_name),
             verbose=1,
@@ -140,7 +141,7 @@ def cnn_train(args, custom_model):
         vae_decay_lr = ReduceLROnPlateau(
             monitor="val_loss", factor=0.8, patience=25, verbose=1
         )
-        calls = [vae_ckpt, vae_decay_lr]
+        calls = [vae_ckpt, vae_decay_lr, AnnealingCallback(weight)]
         train_gen.self_supervised = True
         valid_gen.self_supervised = True
         VAE.compile(
@@ -153,7 +154,7 @@ def cnn_train(args, custom_model):
             train_gen,
             validation_data=valid_gen,
             epochs=args.epochs,
-            verbose=0,
+            verbose=2,
             callbacks=calls,
         )
 
