@@ -152,8 +152,8 @@ def cnn_train(args, custom_model):
         vae_history = VAE.fit_generator(
             train_gen,
             validation_data=valid_gen,
-            epochs=args.epochs,
-            verbose=0,
+            epochs=args.vae_epochs,
+            verbose=1,
             callbacks=calls,
         )
 
@@ -162,8 +162,6 @@ def cnn_train(args, custom_model):
 
     # build the model
     model = custom_model(num_classes=num_classes, final_activation_fn="sigmoid")
-    # freeze the encoder weights
-    model.get_layer("encoder").trainable = False
 
     model.compile(
         optimizer=Adam(learning_rate=args.lr, clipnorm=1.0, clipvalue=0.5),
@@ -185,6 +183,22 @@ def cnn_train(args, custom_model):
         verbose=1,
         callbacks=callback_list,
     )
+
+    if args.model == "vae":
+        # freeze the encoder weights and train the decoder again
+        VAE.get_layer("encoder").trainable = False
+        train_gen.self_supervised = True
+        valid_gen.self_supervised = True
+        vae_history = VAE.fit_generator(
+            train_gen,
+            validation_data=valid_gen,
+            epochs=args.vae_epochs,
+            verbose=1,
+            callbacks=calls,
+        )
+        train_gen.self_supervised = False
+        valid_gen.self_supervised = False
+
     return history
 
 
@@ -249,7 +263,10 @@ if __name__ == "__main__":
     )
     parser.add_argument("--num_classes", default=15, type=int, help="Number of classes")
     parser.add_argument(
-        "--epochs", default=500, type=int, help="Number of epochs to train the model"
+        "--epochs", default=200, type=int, help="Number of epochs to train the model"
+    )
+    parser.add_argument(
+        "--vae_epochs", default=100, type=int, help="Number of epochs to train the vae"
     )
     parser.add_argument(
         "--test_size",
