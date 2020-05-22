@@ -147,8 +147,6 @@ def cnn_train(args, custom_model):
             optimizer=Adam(learning_rate=args.lr, clipnorm=1.0, clipvalue=0.5),
             loss=VAE_LOSS,
         )
-        VAE.summary()
-        # plot_model(VAE, to_file="vae_cnn.png", show_shapes=True)
         vae_history = VAE.fit_generator(
             train_gen,
             validation_data=valid_gen,
@@ -187,6 +185,10 @@ def cnn_train(args, custom_model):
     if args.model == "vae":
         # freeze the encoder weights and train the decoder again
         VAE.get_layer("encoder").trainable = False
+        VAE.compile(
+            optimizer=Adam(learning_rate=args.lr, clipnorm=1.0, clipvalue=0.5),
+            loss=VAE_LOSS,
+        )
         train_gen.self_supervised = True
         valid_gen.self_supervised = True
         vae_history = VAE.fit_generator(
