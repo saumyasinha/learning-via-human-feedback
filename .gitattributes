@@ -9,3 +9,5 @@ FaceClassifier/vae_weights/first_vae.h5 filter=lfs diff=lfs merge=lfs -text
 FaceClassifier/vae_weights/vae_may18_vae.h5 filter=lfs diff=lfs merge=lfs -text
 FaceClassifier/vae_weights/may18_vae.h5 filter=lfs diff=lfs merge=lfs -text
 FaceClassifier/vae_weights/vae_first_vae.h5 filter=lfs diff=lfs merge=lfs -text
+FaceClassifier/vae_weights/vae_may20_vae.h5 filter=lfs diff=lfs merge=lfs -text
+FaceClassifier/vae_weights/may20_vae.h5 filter=lfs diff=lfs merge=lfs -text

@@ -113,8 +113,8 @@ LATENT_DIM = 50
 INPUT_SHAPE = (240, 320, 3)
 
 
-def get_encoder(input_shape, latent_dim, padding="same"):
-    inputs = Input(shape=input_shape)
+def get_encoder(padding="same"):
+    inputs = Input(shape=INPUT_SHAPE)
 
     # block 1
     x = Conv2D(32, kernel_size=(3, 3), padding=padding, strides=2, activation="relu")(
@@ -140,20 +140,20 @@ def get_encoder(input_shape, latent_dim, padding="same"):
     shape = K.int_shape(x)
     x = Flatten()(x)
 
-    z_mean = Dense(latent_dim, name="z_mean")(x)
-    z_log_var = Dense(latent_dim, name="z_log_var")(x)
+    z_mean = Dense(LATENT_DIM, name="z_mean")(x)
+    z_log_var = Dense(LATENT_DIM, name="z_log_var")(x)
 
     # use reparameterization trick to push the sampling out as input
     # note that "output_shape" isn't necessary with the TensorFlow backend
-    z = Lambda(sampling, output_shape=(latent_dim,), name="z")([z_mean, z_log_var])
+    z = Lambda(sampling, output_shape=(LATENT_DIM,), name="z")([z_mean, z_log_var])
 
     # instantiate encoder model
     encoder = Model(inputs, [z_mean, z_log_var, z], name="encoder")
     return encoder, shape
 
 
-def get_decoder(latent_dim, shape, padding="same"):
-    latent_inputs = Input(shape=(latent_dim,), name="z_sampling")
+def get_decoder(shape, padding="same"):
+    latent_inputs = Input(shape=(LATENT_DIM,), name="z_sampling")
     x = Dense(shape[1] * shape[2] * shape[3], activation="relu")(latent_inputs)
     x = Reshape((shape[1], shape[2], shape[3]))(x)
 
@@ -190,36 +190,34 @@ def get_decoder(latent_dim, shape, padding="same"):
     decoder = Model(latent_inputs, outputs, name="decoder")
     return decoder
 
-
-def get_vae(encoder, decoder, input_shape):
-    inputs = Input(shape=input_shape)
+weight = K.variable(0.)
+def get_vae(encoder, decoder):
+    inputs = Input(shape=INPUT_SHAPE)
     z_mean, z_log_var, z = encoder(inputs)
     outputs = decoder(z)
     vae = Model(inputs, outputs, name="vae")
+
+    # add metrics to keep track of average z
+    for idx in range(z.shape[1]):
+        vae.add_metric(z[:, idx], name=f"avg_z_{idx}")
+
     # get vae loss function
-    def vae_loss_fn(y_true, y_pred):
+    def vae_loss_fn(y_true, y_pred, weight=weight):
         bce_loss = mse(K.flatten(y_true), K.flatten(y_pred))
-        bce_loss *= input_shape[0] * input_shape[1]
+        bce_loss *= INPUT_SHAPE[0] * INPUT_SHAPE[1]
         # kl divergence from standard normal
         kl_loss = 1 + z_log_var - K.square(z_mean) - K.exp(z_log_var)
         kl_loss = K.sum(kl_loss, axis=-1)
         kl_loss *= -0.5
-        return K.mean(bce_loss + kl_loss, axis=-1)
+        return K.mean(bce_loss + weight*kl_loss, axis=-1)
 
     return vae, vae_loss_fn
 
 
-ENCODER, DECONV_SHAPE = get_encoder(input_shape=INPUT_SHAPE, latent_dim=LATENT_DIM)
-DECODER = get_decoder(latent_dim=LATENT_DIM, shape=DECONV_SHAPE)
-VAE, VAE_LOSS = get_vae(ENCODER, DECODER, input_shape=INPUT_SHAPE)
+def get_classifier(num_classes, final_activation_fn):
+    inputs = Input(shape=(LATENT_DIM,))
 
-
-def vae_network(input_shape, num_classes, final_activation_fn="sigmoid"):
-    assert input_shape == INPUT_SHAPE
-    inputs = Input(shape=input_shape)
-    z = ENCODER(inputs)[2]
-
-    x = Dense(LATENT_DIM)(z)
+    x = Dense(LATENT_DIM)(inputs)
     x = BatchNorm()(x)
     x = Activation("relu")(x)
     x = Dropout(0.4)(x)
@@ -231,7 +229,21 @@ def vae_network(input_shape, num_classes, final_activation_fn="sigmoid"):
 
     x = Dense(num_classes)(x)
     outputs = Activation(final_activation_fn)(x)
+    return Model(inputs, outputs, name="classifier")
+
+
+def vae_network(num_classes, final_activation_fn="sigmoid"):
+    inputs = Input(shape=INPUT_SHAPE)
+    z = ENCODER(inputs)[2]
+    classifier = get_classifier(num_classes, final_activation_fn)
+    outputs = classifier(z)
     return Model(inputs, outputs, name="vae_network")
+
+
+ENCODER, DECONV_SHAPE = get_encoder()
+DECODER = get_decoder(shape=DECONV_SHAPE)
+VAE, VAE_LOSS = get_vae(ENCODER, DECODER)
+# VAE.load_weights("vae_weights/vae_may19_vae.h5")
 
 
 def landmark_network(input_shape, num_classes, final_activation_fn="sigmoid"):

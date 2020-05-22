@@ -57,8 +57,8 @@ class AnnealingCallback(Callback):
         self.weight = weight
 
     def on_epoch_end(self, epoch, logs={}):
-        if epoch > klstart:
-            new_weight = min(K.get_value(self.weight) + (1.0 / annealtime), 1.0)
+        if epoch > 30:
+            new_weight = min(K.get_value(self.weight) + (1.0 / 15), 1.0)
             K.set_value(self.weight, new_weight)
         print("Current KL Weight is " + str(K.get_value(self.weight)))
 
