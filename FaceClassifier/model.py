@@ -239,7 +239,7 @@ def vae_network(num_classes, final_activation_fn="sigmoid"):
 ENCODER, DECONV_SHAPE = get_encoder()
 DECODER = get_decoder(shape=DECONV_SHAPE)
 VAE, VAE_LOSS = get_vae(ENCODER, DECODER)
-VAE.load_weights("vae_weights/vae_may20_vae.h5")
+VAE.load_weights("vae_weights/vae_may23_vae.h5")
 
 
 def landmark_network(input_shape, num_classes, final_activation_fn="sigmoid"):

@@ -167,6 +167,8 @@ def cnn_train(args, custom_model):
         metrics=["accuracy"],
     )
 
+    model.load_weights("vae_weights/may23_vae.h5")
+
     checkpoint = ModelCheckpoint(
         os.path.join(args.model_dir, args.model_name), verbose=1, save_best_only=True
     )
@@ -189,6 +191,15 @@ def cnn_train(args, custom_model):
             optimizer=Adam(learning_rate=args.lr, clipnorm=1.0, clipvalue=0.5),
             loss=VAE_LOSS,
         )
+        vae_ckpt = ModelCheckpoint(
+            os.path.join(args.model_dir, "vae_after_" + args.model_name),
+            verbose=1,
+            save_best_only=True,
+        )
+        vae_decay_lr = ReduceLROnPlateau(
+            monitor="val_loss", factor=0.8, patience=25, verbose=1
+        )
+        calls = [vae_ckpt, vae_decay_lr]
         train_gen.self_supervised = True
         valid_gen.self_supervised = True
         vae_history = VAE.fit_generator(
