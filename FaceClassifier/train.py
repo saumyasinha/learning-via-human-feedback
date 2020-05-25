@@ -167,7 +167,7 @@ def cnn_train(args, custom_model):
         metrics=["accuracy"],
     )
 
-    model.load_weights("vae_weights/may23_vae.h5")
+    # model.load_weights("vae_weights/may23_vae.h5")
 
     checkpoint = ModelCheckpoint(
         os.path.join(args.model_dir, args.model_name), verbose=1, save_best_only=True
