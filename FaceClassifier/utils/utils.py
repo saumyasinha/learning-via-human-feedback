@@ -1,10 +1,66 @@
-from keras.utils import Sequence
-import numpy as np
-from imutils import face_utils
-import dlib
-import cv2
-from keras.utils import to_categorical
 import os
+
+import cv2
+import dlib
+import keras.backend as K
+import numpy as np
+import tensorflow as tf
+from imutils import face_utils
+from keras.callbacks import Callback
+from keras.layers import BatchNormalization, Layer
+from keras.utils import Sequence, to_categorical
+
+
+def BatchNorm():
+    return BatchNormalization(momentum=0.95, epsilon=1e-5)
+
+
+class Resize(Layer):
+    """ Custom Keras layer that resizes to a new size using interpolation.
+    Bypasses the use of Keras Lambda layer
+    Args:
+      - new_size: tuple, new size to which layer needs to be resized to. Must be (height, width)
+      - method: str, method of interpolation to be used. If None, defaults to bilinear.
+               Choose amongst 'bilinear', 'nearest', 'lanczos3', 'lanczos5', 'area', 'gaussian', 'mitchellcubic'
+    Returns:
+      - keras.layers.Layer of size [?, new_size[0], new_size[1], depth]
+    """
+
+    def __init__(self, new_size, method="bilinear", **kwargs):
+        self.new_size = new_size
+        self.method = method
+        super(Resize, self).__init__(**kwargs)
+
+    def build(self, input_shape):
+        super(Resize, self).build(input_shape)
+
+    def call(self, inputs, **kwargs):
+        resized_height, resized_width = self.new_size
+        return tf.image.resize(
+            images=inputs,
+            size=[resized_height, resized_width],
+            method=self.method,
+            # align_corners=True,
+        )
+
+    def compute_output_shape(self, input_shape):
+        return tuple([None, self.new_size[0], self.new_size[1], input_shape[3]])
+
+    def get_config(self):
+        config = super(Resize, self).get_config()
+        config["new_size"] = self.new_size
+        return config
+
+
+class AnnealingCallback(Callback):
+    def __init__(self, weight):
+        self.weight = weight
+
+    def on_epoch_end(self, epoch, logs={}):
+        if epoch > klstart:
+            new_weight = min(K.get_value(self.weight) + (1.0 / annealtime), 1.0)
+            K.set_value(self.weight, new_weight)
+        print("Current KL Weight is " + str(K.get_value(self.weight)))
 
 
 def get_landmark_points(img, detector, predictor):
@@ -27,7 +83,7 @@ def get_landmark_points(img, detector, predictor):
         return np.empty(0)
 
 
-class DataGenerator(Sequence):
+class LandmarkDataGenerator(Sequence):
     """
   Image generator inherited from keras.utils.Sequence to be used for dense network (landmarks).
   Args:
@@ -155,6 +211,8 @@ class ImageGenerator(Sequence):
         self.shuffle = shuffle
         self.to_fit = to_fit
         self.image_format = image_format
+        self.self_supervised = False
+
         if self.to_fit:
             self.on_epoch_end()
 
@@ -184,7 +242,8 @@ class ImageGenerator(Sequence):
             )
             # if self.num_channels<3:
             # img = self.grayscale(img)
-            img = self.normalize_img(img)
+            # img = self.normalize_img(img)
+            img = img / 255
             # replace any NaNs by 1
             img = np.nan_to_num(img, nan=np.float64(1.0))
             if self.num_channels < 3:
@@ -211,11 +270,14 @@ class ImageGenerator(Sequence):
 
         # Generate data
         X, y = self._data_generator(indices)
+        if self.self_supervised:
+            return X, X
         return X, y
 
     def on_epoch_end(self):
         self.indices = np.arange(len(self.image_list))
         if self.shuffle:
+            np.random.seed(42)
             np.random.shuffle(self.indices)
 
     def normalize_img(self, img):
